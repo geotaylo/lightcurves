@@ -11,7 +11,7 @@ Aims to:
 
 Requires SNCosmo to be installed: https://sncosmo.readthedocs.io/en/v1.4.x/index.html
 """
-import sm_filters_v1_1    # Registers bandpasses
+import sm_filters    # Registers bandpasses
 import sncosmo
 import numpy as np
 from astropy.table import Table
