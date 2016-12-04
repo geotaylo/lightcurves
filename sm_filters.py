@@ -5,7 +5,7 @@ GT 30/11/16
 
 Program for creating and registering bandpasses of the SkyMapper Telescope
 and Kepler Space Telescope in SNcosmo.
-For use with sim_new_v1_1.py
+For use with sim_new.py
 Files must be in wd
 """
 
