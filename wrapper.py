@@ -8,7 +8,7 @@ Test run of a wrapper script to take inputs and run section A of sncosmo situati
 """
 
 ### Keep updating as needed - might be able to change to cmd eventually
-import sim_new_v1_5 as sim
+import sim_new as sim
 
 #  Simulate observed lightcurve
 #  Defaults: nSNe=0, tmin=57754 (01Jan2017), tmax=58118 (31Dec2017), zmin=0.001, zmax=0.07
