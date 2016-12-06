@@ -14,6 +14,11 @@ import numpy as np
 from astropy.table import Table
 from matplotlib.backends.backend_pdf import PdfPages
 
+from astropy.coordinates import SkyCoord  # High-level coordinates
+from astropy.coordinates import ICRS, Galactic, FK4, FK5  # Low-level frames
+from astropy.coordinates import Angle, Latitude, Longitude  # Angles
+import astropy.units as u
+
 import sfdmap
 import sncosmo
 from sncosmo import mcmc_lc as fit
@@ -153,11 +158,14 @@ def fit_util_lc(data, index):
     plotname = 'TestFiles/fitted_lc_%s.pdf'%index
     
     # Generating random coords for dustmap.
-    ra = np.random.uniform(0, 360)
     
-    dec = np.random.uniform(-90, 90)
+    # Galactic longitude.
+    l = np.random.uniform(0, 360)
     
-    ebv = dustmap.ebv(ra, dec)
+    # Galactic latitude.
+    b = np.random.uniform(-90, -30)
+    
+    ebv = dustmap.ebv(l, b, frame='galactic', unit='degree')
     
     model.set(mwebv=ebv)
     
