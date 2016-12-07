@@ -10,14 +10,10 @@ Requires SNCosmo to be installed:
 https://sncosmo.readthedocs.io/en/v1.4.x/index.html
 """
 
+import os
 import numpy as np
 from astropy.table import Table
 from matplotlib.backends.backend_pdf import PdfPages
-
-from astropy.coordinates import SkyCoord  # High-level coordinates
-from astropy.coordinates import ICRS, Galactic, FK4, FK5  # Low-level frames
-from astropy.coordinates import Angle, Latitude, Longitude  # Angles
-import astropy.units as u
 
 import sfdmap
 import sncosmo
@@ -42,6 +38,12 @@ model = sncosmo.Model(source='salt2',
                       effect_frames=['rest', 'obs'])
 
 
+def ensure_dir(f):
+    d = os.path.dirname(f)
+    if not os.path.exists(d):
+        os.makedirs(d)
+        
+
 def mu(z):
     
     """ Distance modulus formula used to obtain x0 """
@@ -55,7 +57,7 @@ def mu(z):
     return 5*np.log10(d_L) + 25
 
 
-def simulate_lc(nSNe=0, cadence=4, kpass=False,
+def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
                 tmin=57754, tmax=58118, zmin=0.001, zmax=0.1
                 ):
     
@@ -63,12 +65,15 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False,
         Defaults:  nSNe = 0 (number of SN)
                    cadence = 4 (days between observations)
                    kpass = false (include kepler bandpass)
+                   folder = 'Testfiles/' (path to store outputs)
                    tmin = 57754 (01/01/2017 in mjd)
                    tmax = 58118 (31/12/2017 in mjd)
                    zmin = 0.001 (min redshift detectable by SkyMapper)
                    zmax = 0.100 (max redshift detectable by SkyMapper)
     """
-                   
+    
+    ensure_dir(folder)
+               
     if kpass:
         bands = allbands
     else:
@@ -135,27 +140,44 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False,
     # Generate light curve for each SN observation.
     lcs = sncosmo.realize_lcs(obs, model, params)
     
+    # Create text file for storing 'true' parameters for each SN.
+    true_file = folder + 'true_parameters.txt'
+    tf = open(true_file, 'w')
+    
     for k in range(nSNe):
-        name = 'TestFiles/observed_lc_%s.txt'%(k + 1)
+        name = folder + 'observed_lc_%s.txt'%(k + 1)
         
+        # Write observations.
         sncosmo.write_lc(lcs[k], name)
         
         print 'Simulated observations for supernova %s saved in %s'\
                %((k + 1), name)
                
-        print lcs[k].meta
-               
+        # Write true parameters in text file.
+        tf.write('SN%s: '%(k+1))
+        
+        true_params = lcs[k].meta
+
+        for key in sorted(true_params):
+            tf.write('%s:%s ' % (key, true_params[key]))
+            
+        tf.write('\n')
+        
+        print 'True parameters for supernova %s saved in %s'\
+               %((k + 1), true_file)
+              
+    tf.close 
     return lcs
                
                
-def fit_util_lc(data, index):
+def fit_util_lc(data, index, folder):
                    
     """ Fits SALT2 light curve to a supernova observation
         Plots model, data and residuals """
                    
-    print 'Fitting light curve to supernova %s'%index
+    print 'Fitting light curve for supernova %s'%index
                    
-    plotname = 'TestFiles/fitted_lc_%s.pdf'%index
+    plotname = folder + 'fitted_lc_%s.pdf'%index
     
     # Generating random coords for dustmap.
     
@@ -176,6 +198,13 @@ def fit_util_lc(data, index):
                                ['z', 't0', 'x0', 'x1', 'c'], 
                                bounds={'z':(0.001, 0.1)}, minsnr=1.0
                                )
+    
+    fitted_params = dict([(result.param_names[0], result.parameters[0]),
+                          (result.param_names[1], result.parameters[1]),
+                          (result.param_names[2], result.parameters[2]),
+                          (result.param_names[3], result.parameters[3]),
+                          (result.param_names[4], result.parameters[4])
+                          ])
                    
     pp = PdfPages(plotname)
     
@@ -187,17 +216,36 @@ def fit_util_lc(data, index):
                    
     print 'Fitted light curve plotted in ' + plotname
     
-    return
+    return fitted_params
                    
                    
-def fit_snlc(lightcurve):
+def fit_snlc(lightcurve, folder='TestFiles/'):
                        
     """ Utility function for fitting lightcurves to 
     observations of multiple SN """
-                       
+                 
+    # Create text file for storing 'fitted' parameters for each SN.
+    fitted_file = folder + 'fitted_parameters.txt'
+    ff = open(fitted_file, 'w')
+      
     for i in range(len(lightcurve)):
-        fit_util_lc(lightcurve[i], i + 1)
-                           
+        p = fit_util_lc(lightcurve[i], i + 1, folder)
+        
+        # Write fitted parameters in text file.
+        ff.write('SN%s: '%(i+1))
+        
+        for key in sorted(p):
+            ff.write('%s:%s ' % (key, p[key]))
+            
+        ff.write('\n')
+        
+        print 'Fitted parameters for supernova %s saved in %s'\
+               %((i + 1), fitted_file)
+
+    ff.close()
+    
+    print 'Process complete.'
+                       
     return
                            
                            
