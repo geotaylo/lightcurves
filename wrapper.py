@@ -14,7 +14,7 @@ import run_sncosmo as run
 
 
 # Generates random SN and simulates observed data.
-test = run.simulate_lc(nSNe=1, cadence=3, kpass=True)
+test = run.simulate_lc(cadence=4)
 
 
 # Import list of lightcurves from files (if not simulating above).
