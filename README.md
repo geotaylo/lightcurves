@@ -16,7 +16,31 @@ Installation requirements:
 
 
 Basic instructions:
-* After completing the required installations listed above, you can run the simulation code directly from your command line, or use the     wrapper.py script which performs an example simulation.
+1. Complete required installations.
+2. Edit the wrapper.py code for your desired simulations.  Available methods include:
+   *  simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/', tmin=57754, tmax=58118, zmin=0.001, zmax=0.1, params=[], obs_in=[]): Returns list of 'observed' lightcurves, generated SN parameters, and observing properties.  
+   SN parameters are saved in true_parameters.txt; simulated observations for SN 'n' are saved in observed_lc_n.txt
+   Inputs:
+   - nSNe: number of SN to simulate (if 0, takes expected SN rate from SNCosmo based on SkyMapper field of view).
+   - cadence: number of days between simulated observations.
+   - kpass: whether the kepler filter is included in simulation.
+   - folder: directory to store outputs.
+   - tmin & tmax: possible interval covered by simulation, in mjd (default is all of 2017).
+   - zmin & zmax: possible redshift range of SN.
+   - params: list of SN parameters, if using a pre-existing set of SN.  If blank, new parameters are generated.
+   - obs_in: interval to observe over, if using a pre-existing set of SN (i.e. repeating simulation to include additional filters).  If blank, a new interval is generated.
+   
+   * get_lc(filelist): If you're fitting models to observations from an existing ascii file (rather than simulating observations above), this will return the a list of lightcurves to pass to the fitting method.
+   Inputs:
+   - filelist: Python list of observation filename strings.
+   
+   * fit_snlc(lightcurve, folder='TestFiles/'): Fits SALT2 models to list of observed light curves.
+   Fitted model parameters are saved in fitted_parameters.txt; plots of simulated observations vs fitted model are saved in fitted_lc_n.pdf.
+   Inputs:
+   - lightcurve: list of observed lightcurves
+   - folder: directory to store outputs.
+3. Save wrapper.py file and run from terminal.  In current directory: python wrapper.py
+4. You will need an internet connection (to load dustmaps) and time - each SN model takes ~3 minutes to fit.
 
 
 About files:
