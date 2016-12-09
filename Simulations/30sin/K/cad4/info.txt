@@ -1,0 +1,1 @@
+30 SN simulation with Kepler filter, cadence = 4 days
