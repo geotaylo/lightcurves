@@ -6,10 +6,18 @@ Code purpose:
 * Simulating observations:  The code randomly generate parameters of supernovae that we could reasonably expect to observe as part of the   SkyMapper Transient Survey.  Observing properties are generated based on user-inputted filters and cadence.  Observations are then         combined with the SN parameters and a 'blank' SALT2 model using SNCosmo's 'realize_lc()' method to simulate an observed light curve,       which is stored as a observed_lc.txt file (as are the 'true' parameters of each SN, in true_parameters.txt).
 * Fitting a light curve:  Using observed light curves (either pre-existing or returned from the simulation above), the code uses SNCosmo's   'mcmc_lc()' method to fit a SALT2 model to the observations.  Prior to this, the extinction of the model is set using SNCosmo's dustmap   funtionality.  The plot of model vs. data is saved as fitted_lc.pdf (as are the 'fitted' parameters of each SN, in                         fitted_parameters.txt).
 
+
 Installation requirements:
+* astropy: http://www.astropy.org/
+* emcee: http://dan.iel.fm/emcee/current/
+* matplotlib: http://matplotlib.org/
+* sfdmap: https://github.com/kbarbary/sfdmap
+* sncosmo: http://sncosmo.readthedocs.io/en/v1.4.x/install.html
+
 
 Basic instructions:
 * After completing the required installations listed above, you can run the simulation code directly from your command line, or use the     wrapper.py script which performs an example simulation.
+
 
 About files:
 * filters.py reads wavelength/transmission files for SkyMapper and Kepler filters, and create and registers bandpasses for use in SNCosmo   code.  It's currently designed to work only for the following filters:
