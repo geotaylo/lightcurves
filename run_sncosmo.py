@@ -127,10 +127,17 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
             gain = obs_in[t][3]
             skynoise = obs_in[t][4]
             
+        o_t = []
+        # Adds 20s offset time between observations in different filters
+        for x in range(len(bands)):
+            j = np.array(time) + 0.00023148148*x
+            o_t.append(j.tolist())
+        observing_time = [item for sublist in o_t for item in sublist]
+            
         nPoints = nObs*len(bands)
         obs_util = [time, nObs, ZP, gain, skynoise] 
         observing_dictionary = {'band':np.array(nObs*bands),
-                     'time': sorted(time*len(bands)),
+                     'time': sorted(observing_time),
                      'zp':nPoints*[ZP],
                      'zpsys':nPoints*['ab'],
                      'gain':nPoints*[gain],
