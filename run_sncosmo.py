@@ -69,7 +69,7 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
                    zmax = 0.100 (max redshift detectable by SkyMapper)
                    params = [] (SN parameters, generates if blank)
     """
-    
+        
     # Maintenance stuff
     filters.register_filters()
     ensure_dir(folder)
@@ -79,7 +79,9 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
         bands = allbands
     else:
         bands = smbands 
-    
+        
+    lcs=[]
+    observing_list = []
     # GENERATING SUPERNOVAE PARAMETERS (IF NOT PROVIDED)
     if (params == []):
         # Obtain redshifts                    
@@ -95,74 +97,72 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
             print 'Obtained %s'%nSNe \
                   + ' redshifts from uniform distribution. \n'
                       
-        t0 = np.random.uniform(tmin, tmax)  # Time at lightcurve peak (mjd).
+        t0 = np.random.uniform(tmin, tmax, nSNe)  # Time at lightcurve peak (mjd).
         c = 0.3*np.random.randn(nSNe)   # Colour
         x1 = 3*np.random.randn(nSNe)    # Stretch
     
         for i in range(nSNe):
             x0 = 10**((29.69 - mu(z[i]))/2.5)   # Amplitude (?)
-            p = {'z': z[i], 't0': t0, 'x0': x0, 'x1': x1[i], 'c': c[i]}
-            params.append(p)
-
-
-    # CREATING TABLE OF OBSERVATIONS            
-    if (obs_in == []):
-        tdet = np.random.randint(-15, -2)  # Time of init detection (mjd).
-        tobs = np.random.randint(25, 65)  # Total observing period (days).
-        time = (params[0].get('t0')
-                + np.arange(tdet, tdet + tobs, cadence)).tolist()
-        nObs = len(time)
-        ZP = 25. # Zero point for scaling (filler val)
-        gain = 1. # Filler value
-        skynoise = 100. # Filler value
-    else:
-        time = obs_in[0]
-        nObs = obs_in[1]
-        ZP = obs_in[2]
-        gain = obs_in[3]
-        skynoise = obs_in[4]
-        
-    nPoints = nObs*len(bands)
-    obs_util = [time, nObs, ZP, gain, skynoise]           
-    obs = Table({'band':np.array(nObs*bands),
-                 'time': sorted(time*len(bands)),
-                 'zp':nPoints*[ZP],
-                 'zpsys':nPoints*['ab'],
-                 'gain':nPoints*[gain],
-                 'skynoise':nPoints*[skynoise]
-                 })
-        
-    # SIMULATING LIGHT CURVE
-    lcs = sncosmo.realize_lcs(obs, model, params)
+            p = {'z': z[i], 't0': t0[i], 'x0': x0, 'x1': x1[i], 'c': c[i]}
+            params.append(p)        
     
-    # STORING RESULTS
     true_file = folder + 'true_parameters.txt'
     tf = open(true_file, 'w')
     
-    for k in range(nSNe):
-        name = folder + 'observed_lc_%s.txt'%(k + 1)
+    for t in range(nSNe):
+        # CREATING TABLE OF OBSERVATIONS            
+        if (obs_in == []):
+            tdet = np.random.randint(-15, -2)  # Time of init detection (mjd).
+            tobs = np.random.randint(25, 65)  # Total observing period (days).
+            time = (params[t].get('t0')
+                    + np.arange(tdet, tdet + tobs, cadence)).tolist()
+            nObs = len(time)
+            ZP = 25. # Zero point for scaling (filler val)
+            gain = 1. # Filler value
+            skynoise = 100. # Filler value
+        else:
+            time = obs_in[t][0]
+            nObs = obs_in[t][1]
+            ZP = obs_in[t][2]
+            gain = obs_in[t][3]
+            skynoise = obs_in[t][4]
+            
+        nPoints = nObs*len(bands)
+        obs_util = [time, nObs, ZP, gain, skynoise] 
+        observing_dictionary = {'band':np.array(nObs*bands),
+                     'time': sorted(time*len(bands)),
+                     'zp':nPoints*[ZP],
+                     'zpsys':nPoints*['ab'],
+                     'gain':nPoints*[gain],
+                     'skynoise':nPoints*[skynoise]
+                     }  
+        observing_list.append(obs_util) 
+        obs = Table(observing_dictionary)
+        lc = sncosmo.realize_lcs(obs, model, [params[t]])
+        lcs.append(lc[0])
+        
+        name = folder + 'observed_lc_%s.txt'%(t + 1)
         
         # Write observations.
-        sncosmo.write_lc(lcs[k], name)
+        sncosmo.write_lc(lc[0], name)
         
         print 'Simulated observations for supernova %s saved in %s'\
-               %((k + 1), name)
+               %((t + 1), name)
                
         # Write true parameters in text file.
-        tf.write('SN%s: '%(k+1))
+        tf.write('SN%s: '%(t+1))
         
-        true_params = lcs[k].meta
-
+        true_params = lc[0].meta
+    
         for key in sorted(true_params):
             tf.write('%s:%s ' % (key, true_params[key]))
             
         tf.write('\n')
         
         print 'True parameters for supernova %s saved in %s \n'\
-               %((k + 1), true_file)
-              
-    tf.close 
-    return lcs, params, obs_util
+               %((t + 1), true_file)
+    tf.close
+    return lcs, params, observing_list
                    
                    
 def fit_snlc(lightcurve, folder='TestFiles/'):
