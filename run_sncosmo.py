@@ -262,6 +262,8 @@ def fit_snlc(lightcurve, folder='TestFiles/', properties=''):
                        
     """ Utility function for fitting lightcurves to 
     observations of multiple SN """
+    
+    ensure_dir(folder)
                  
     # Create text file for storing 'fitted' parameters for each SN.
     fitted_file = folder + 'fitted_parameters.txt'
@@ -317,7 +319,7 @@ def fit_util_lc(data, index, folder, coords_in):
     result, fitted_model = fit(data, model,
                                # Parameters of model to vary.
                                ['z', 't0', 'x0', 'x1', 'c'], 
-                               bounds={'z':(0.001, 0.1)}, minsnr=3.0
+                               bounds={'z':(0.001, 0.1)}, minsnr=2.0
                                )
     
     fitted_params = dict([(result.param_names[0], result.parameters[0]),
