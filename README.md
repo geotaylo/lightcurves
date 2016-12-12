@@ -22,16 +22,15 @@ Basic instructions:
 
 2. Edit the wrapper.py code for your desired simulations.  Available methods include:
 
-   *  simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/', tmin=57754, tmax=58118, zmin=0.001, zmax=0.1, properties=''): Returns list of 'observed' lightcurves. 
-   SN parameters are saved in true_parameters.txt; simulated observations for SN 'n' are saved in observed_lc_n.txt; simulation features are saved in sn_dict.pkl.
-   Inputs:
-   - nSNe: number of SN to simulate (if 0, takes expected SN rate from SNCosmo based on SkyMapper field of view).
-   - cadence: number of days between simulated observations.
-   - kpass: whether the kepler filter is included in simulation.
-   - folder: directory to store outputs.
-   - tmin & tmax: possible interval covered by simulation, in mjd (default is all of 2017).
-   - zmin & zmax: possible redshift range of SN.
-   - properties: file containing set of features to 're-observe'.  If blank, random features are generated.
+   *  simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/', tmin=57754, tmax=58118, zmin=0.001, zmax=0.1, properties=''):  Returns list of 'observed' lightcurves.  SN parameters are saved in true_parameters.txt; simulated observations for SN 'n' are saved in observed_lc_n.txt; simulation features are saved in sn_dict.pkl.
+   -Inputs:
+      - nSNe: number of SN to simulate (if 0, takes expected SN rate from SNCosmo based on SkyMapper field of view).
+      - cadence: number of days between simulated observations.
+      - kpass: whether the kepler filter is included in simulation.
+      - folder: directory to store outputs.
+      - tmin & tmax: possible interval covered by simulation, in mjd (default is all of 2017).
+      - zmin & zmax: possible redshift range of SN.
+      - properties: file containing set of features to 're-observe'.  If blank, random features are generated.
    
    * get_lc(filelist): If you're fitting models to observations from an existing ascii file (rather than simulating observations above), this will return the a list of lightcurves to pass to the fitting method.
    Inputs:
