@@ -22,26 +22,30 @@ Basic instructions:
 
 2. Edit the wrapper.py code for your desired simulations.  Available methods include:
 
-   *  simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/', tmin=57754, tmax=58118, zmin=0.001, zmax=0.1, properties=''):  Returns list of 'observed' lightcurves.  SN parameters are saved in true_parameters.txt; simulated observations for SN 'n' are saved in observed_lc_n.txt; simulation features are saved in sn_dict.pkl.
-   -Inputs:
-      - nSNe: number of SN to simulate (if 0, takes expected SN rate from SNCosmo based on SkyMapper field of view).
-      - cadence: number of days between simulated observations.
-      - kpass: whether the kepler filter is included in simulation.
-      - folder: directory to store outputs.
-      - tmin & tmax: possible interval covered by simulation, in mjd (default is all of 2017).
-      - zmin & zmax: possible redshift range of SN.
-      - properties: file containing set of features to 're-observe'.  If blank, random features are generated.
+   *  simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/', tmin=57754, tmax=58118, zmin=0.001, zmax=0.1, properties=''):
+      - Returns list of 'observed' lightcurves.  
+      - SN parameters are saved in true_parameters.txt; simulated observations for SN 'n' are saved in observed_lc_n.txt; simulation features are saved in sn_dict.pkl.
+      - Inputs:
+        - nSNe: number of SN to simulate (if 0, takes expected SN rate from SNCosmo based on SkyMapper field of view).
+        - cadence: number of days between simulated observations.
+        - kpass: whether the kepler filter is included in simulation.
+        - folder: directory to store outputs.
+        - tmin & tmax: possible interval covered by simulation, in mjd (default is all of 2017).
+        - zmin & zmax: possible redshift range of SN.
+        - properties: file containing set of features to 're-observe'.  If blank, random features are generated.
    
-   * get_lc(filelist): If you're fitting models to observations from an existing ascii file (rather than simulating observations above), this will return the a list of lightcurves to pass to the fitting method.
-   Inputs:
-   - filelist: Python list of observation filename strings.
+   * get_lc(filelist): 
+      - If you're fitting models to observations from an existing ascii file (rather than simulating observations above), this will return the a list of lightcurves to pass to the fitting method.
+      - Inputs:
+        - filelist: Python list of observation filename strings.
    
-   * fit_snlc(lightcurve, folder='TestFiles/', properties=''): Fits SALT2 models to list of observed light curves.
-   Fitted model parameters are saved in fitted_parameters.txt; plots of simulated observations vs fitted model are saved in fitted_lc_n.pdf.
-   Inputs:
-   - lightcurve: list of observed lightcurves
-   - folder: directory to store outputs.
-   - properties: file containing set of features of simulation, used to pass coordinates to dust maps.  If blank (i.e. if using get_lc() instead of a simulation), random SN cordinates are generated.
+   * fit_snlc(lightcurve, folder='TestFiles/', properties=''):
+     - Fits SALT2 models to list of observed light curves.
+     - Fitted model parameters are saved in fitted_parameters.txt; plots of simulated observations vs fitted model are saved in fitted_lc_n.pdf.
+     - Inputs:
+        - lightcurve: list of observed lightcurves
+        - folder: directory to store outputs.
+        - properties: file containing set of features of simulation, used to pass coordinates to dust maps.  If blank (i.e. if using get_lc() instead of a simulation), random SN cordinates are generated.
    
 3. Save wrapper.py file and run from terminal.  In current directory: python wrapper.py
 
