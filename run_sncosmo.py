@@ -55,7 +55,7 @@ model = sncosmo.Model(source='salt2',
 
 def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
                 tmin=57754, tmax=58118, zmin=0.001, zmax=0.1, 
-                params=[], obs_in=[]
+                params=[], obs_in=[], coords=[]
                 ):
     
     """ Generate SN parameters and simulate 'observed' light curve 
@@ -68,6 +68,8 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
                    zmin = 0.001 (min redshift detectable by SkyMapper)
                    zmax = 0.100 (max redshift detectable by SkyMapper)
                    params = [] (SN parameters, generates if blank)
+                   obs_in= [] (Observing parameters, generates if blank) 
+                   coords = [] (SN coordinates, generates if blank)
     """
         
     # Maintenance stuff
@@ -82,6 +84,10 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
         
     lcs=[]
     observing_list = []
+    if (coords == []):
+        coords = get_coords(nSNe)
+
+
     # GENERATING SUPERNOVAE PARAMETERS (IF NOT PROVIDED)
     if (params == []):
         # Obtain redshifts                    
@@ -128,9 +134,10 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
             skynoise = obs_in[t][4]
             
         o_t = []
-        # Adds 20s offset time between observations in different filters
+
+        # Adds 12s offset time between observations in different filters
         for x in range(len(bands)):
-            j = np.array(time) + 0.00023148148*x
+            j = np.array(time) + 0.00013888888*x
             o_t.append(j.tolist())
         observing_time = [item for sublist in o_t for item in sublist]
             
@@ -153,8 +160,12 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
         # Write observations.
         sncosmo.write_lc(lc[0], name)
         
-        print 'Simulated observations for supernova %s saved in %s'\
-               %((t + 1), name)
+        if kpass:
+            print 'Simulated observations for supernova %s saved in %s;\
+                   Kepler filter included'%((t + 1), name)
+        else:
+            print 'Simulated observations for supernova %s saved in %s'\
+                   %((t + 1), name)
                
         # Write true parameters in text file.
         tf.write('SN%s: '%(t+1))
@@ -169,10 +180,18 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
         print 'True parameters for supernova %s saved in %s \n'\
                %((t + 1), true_file)
     tf.close
-    return lcs, params, observing_list
+    return lcs, params, observing_list, coords
                    
+def get_coords(nSNe):
+    # Generating random coords for dustmap.
+    # Galactic longitude.
+    l = np.random.uniform(0, 360, nSNe).tolist()       
+    # Galactic latitude.
+    b = np.random.uniform(-90, -30, nSNe).tolist()
+    coords=[l,b]
+    return coords
                    
-def fit_snlc(lightcurve, folder='TestFiles/'):
+def fit_snlc(lightcurve, coords, folder='TestFiles/'):
                        
     """ Utility function for fitting lightcurves to 
     observations of multiple SN """
@@ -182,7 +201,8 @@ def fit_snlc(lightcurve, folder='TestFiles/'):
     ff = open(fitted_file, 'w')
       
     for i in range(len(lightcurve)):
-        p = fit_util_lc(lightcurve[i], i + 1, folder)
+        sn_ords = [el[i] for el in coords]
+        p = fit_util_lc(lightcurve[i], i + 1, folder, sn_ords)
         
         # Write fitted parameters in text file.
         ff.write('SN%s: '%(i+1))
@@ -322,7 +342,7 @@ def mu(z):
     d_L = LIGHT*(z + 0.5*(1 - Q0)*z **2)/H0
     return 5*np.log10(d_L) + 25
 
-def fit_util_lc(data, index, folder):
+def fit_util_lc(data, index, folder, coords):
                    
     """ Fits SALT2 light curve to a supernova observation
         Plots model, data and residuals """
@@ -331,15 +351,8 @@ def fit_util_lc(data, index, folder):
                    
     plotname = folder + 'fitted_lc_%s.pdf'%index
     
-    # Generating random coords for dustmap.
-    
-    # Galactic longitude.
-    l = np.random.uniform(0, 360)
-    
-    # Galactic latitude.
-    b = np.random.uniform(-90, -30)
-    
-    ebv = dustmap.ebv(l, b, frame='galactic', unit='degree')
+    ebv = dustmap.ebv(coords[0], coords[1], frame='galactic', 
+                      unit='degree')
     
     model.set(mwebv=ebv)
     
