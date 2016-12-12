@@ -20,7 +20,9 @@ Basic instructions:
 
 1. Complete required installations.
 
-2. Edit the wrapper.py code for your desired simulations.  Available methods include:
+2. Edit dustmap path in run_sncomso.py to the correct location.
+
+3. Edit the wrapper.py code for your desired simulations.  Available methods include:
 
    *  simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/', tmin=57754, tmax=58118, zmin=0.001, zmax=0.1, properties=''):
       - Returns list of 'observed' lightcurves.  
@@ -47,9 +49,9 @@ Basic instructions:
         - folder: directory to store outputs.
         - properties: file containing set of features of simulation, used to pass coordinates to dust maps.  If blank (i.e. if using get_lc() instead of a simulation), random SN cordinates are generated.
    
-3. Save wrapper.py file and run from terminal.  In current directory: python wrapper.py
+4. Save wrapper.py file and run from terminal.  In current directory: python wrapper.py
 
-4. You will need an internet connection (to load dustmaps) and time - each SN model takes ~3 minutes to fit.
+5. You will need an internet connection (to load dustmaps) and time - each SN model takes ~3 minutes to fit.
 
 
 About files:
@@ -62,7 +64,7 @@ About files:
     - 'SkyMapperv'
   - All of these filters then become available for the simulation code to use as desired.  To include additional filters, register them in filters.py and then add them to filter lists at top of run_sncosmo.py
   
-* run_sncosmo.py does all of the heavy lifting, and should only be changed with caution.  A brief overview of the code follows:
+* run_sncosmo.py does all of the heavy lifting, and should only be changed with caution (e.g. to update path to dustmaps, or change the filter sets used).  A brief overview of the code follows:
   - Cosmology and telescope parameters are set (field of view, filter sets, h0, ...).
   - ensure_dir() handles path creation.
   - get_coords() generates random galactic coordinates for SN.
