@@ -55,12 +55,12 @@ Basic instructions:
 About files:
 
 * filters.py reads wavelength/transmission files for SkyMapper and Kepler filters, and create and registers bandpasses for use in SNCosmo   code.  It's currently designed to work only for the following filters:
-  - 'Kepler2cut', where cut refers to the upper wavelength limit being reduced from 9500Å to 9200Å in order to fit in SALT2 model's wavelength range.  NOTE that this cut currently needs to be performed manually in the ascii file, if using updated filter sets.
-  - 'SkyMapperg'
-  - 'SkyMapperi'
-  - 'SkyMapperr'
-  - 'SkyMapperv'
-  All of these filters then become available for the simulation code to use as desired.  To include additional filters, register them in filters.py and then add them to filter lists at top of run_sncosmo.py
+    - 'Kepler2cut', where cut refers to the upper wavelength limit being reduced from 9500Å to 9200Å in order to fit in SALT2 model's wavelength range.  NOTE that this cut currently needs to be performed manually in the ascii file, if using updated filter sets.
+    - 'SkyMapperg'
+    - 'SkyMapperi'
+    - 'SkyMapperr'
+    - 'SkyMapperv'
+  - All of these filters then become available for the simulation code to use as desired.  To include additional filters, register them in filters.py and then add them to filter lists at top of run_sncosmo.py
   
 * run_sncosmo.py does all of the heavy lifting, and should only be changed with caution.  A brief overview of the code follows:
   - Cosmology and telescope parameters are set (field of view, filter sets, h0, ...).
