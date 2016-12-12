@@ -4,15 +4,16 @@ Aims to:
 a) generate SALT2 observation light curves for SN with randomly 
    generated parameters and observations.
 b) take an observation light curve and fit a SALT2 model to it.
-c) provide cosmoloy
 
 Requires installation of:
 - SNCosmo:  https://sncosmo.readthedocs.io/en/v1.4.x/index.html
 - Emcee:
+- sfdmap:
 """
 
 import os
 import csv
+import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 from astropy.table import Table
@@ -25,19 +26,15 @@ from sncosmo import mcmc_lc as fit
 import filters
 
 
-# CONSTANTS _-------------------------------------------------------
+# CONSTANTS _----------------------------------------------------------
 
 
 AREA = 5.7  # SkyMapper field of view.
-
 Q0 = 0.2
-
 LIGHT = 3*10**5  # km/s
-
 H0 = 70.  # km/s/Mpc
 
 smbands = ['smv', 'smg', 'smr', 'smi']  # SkyMapper bandpasses to use.
-
 allbands = ['smv', 'smg', 'smr', 'smi','kst']  # SkyMapper + KST bands
 
 dust = sncosmo.CCM89Dust()
@@ -50,12 +47,74 @@ model = sncosmo.Model(source='salt2',
                       effect_names=['host', 'mw'],
                       effect_frames=['rest', 'obs'])
 
-# USEFUL FNS ----------------------------------------------------
+
+# UTILITY FNS ---------------------------------------------------------
+
+def save_obj(obj, name ):
+    with open(name + '.pkl', 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+        
+def load_obj(name ):
+    with open(name + '.pkl', 'rb') as f:
+        return pickle.load(f)
+
+
+def ensure_dir(f):
+    
+    """ Checks if specified path exists, and creates it if not. """
+    
+    d = os.path.dirname(f)
+    if not os.path.exists(d):
+        os.makedirs(d)
+        
+
+def get_coords(nSNe):
+    
+    """ Generates random galactic coordinates for SN """
+    
+    # Galactic longitude.
+    l = np.random.uniform(0, 360, nSNe).tolist()       
+    # Galactic latitude.
+    b = np.random.uniform(-90, -30, nSNe).tolist()
+    
+    coords = [l,b]
+
+    return coords
+
+
+def get_lc(filelist):
+                               
+    """ Reads lightcurves from files
+        File names should be in a list
+        Returns list of light curve tables """
+                               
+    lcs = []
+
+    for i in range(len(filelist)):
+        print 'Reading light curve of supernova %s \n'%(i + 1)
+        lc = sncosmo.read_lc(filelist[i])
+        lcs.append(lc)
+        
+    return lcs
+    
+
+def mu(z):
+    
+    """ Distance modulus formula used to obtain x0. """
+            
+    d_L = LIGHT*(z + 0.5*(1 - Q0)*z **2)/H0
+
+    return 5*np.log10(d_L) + 25
+
+
+
+# SIMULATING ----------------------------------------------------------
 
 
 def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
                 tmin=57754, tmax=58118, zmin=0.001, zmax=0.1, 
-                params=[], obs_in=[], coords=[]
+                properties=''
                 ):
     
     """ Generate SN parameters and simulate 'observed' light curve 
@@ -67,12 +126,11 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
                    tmax = 58118 (31/12/2017 in mjd)
                    zmin = 0.001 (min redshift detectable by SkyMapper)
                    zmax = 0.100 (max redshift detectable by SkyMapper)
-                   params = [] (SN parameters, generates if blank)
-                   obs_in= [] (Observing parameters, generates if blank) 
-                   coords = [] (SN coordinates, generates if blank)
+                   properties = '' (path and name of dictionary of SN
+                     parameters to use.  If blank, generates new params)
     """
         
-    # Maintenance stuff
+    # Maintenance
     filters.register_filters()
     ensure_dir(folder)
     
@@ -81,15 +139,29 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
         bands = allbands
     else:
         bands = smbands 
-        
+
     lcs=[]
-    observing_list = []
-    if (coords == []):
+    obs_out = []
+
+    # Load dictionary of SN properties
+    if properties:
+        sn_dict = load_obj(properties)
+        params = sn_dict['Parameters']
+        coords = sn_dict['Coordinates']
+        obs_in = sn_dict['Observations']
+        
+        for n in range(nSNe):
+            time = obs_in[n][0]
+            nObs = obs_in[n][1]
+            ZP = obs_in[n][2]
+            gain = obs_in[n][3]
+            skynoise = obs_in[n][4]
+
+    else:
+        # Set coordinates
         coords = get_coords(nSNe)
-
-
-    # GENERATING SUPERNOVAE PARAMETERS (IF NOT PROVIDED)
-    if (params == []):
+        # Set parameters
+        params = []
         # Obtain redshifts                    
         if nSNe == 0:
             z = list(sncosmo.zdist(zmin, zmax, 
@@ -103,21 +175,17 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
             print 'Obtained %s'%nSNe \
                   + ' redshifts from uniform distribution. \n'
                       
-        t0 = np.random.uniform(tmin, tmax, nSNe)  # Time at lightcurve peak (mjd).
+        t0 = np.random.uniform(tmin, tmax, nSNe) # Time at lightcurve peak (mjd).
         c = 0.3*np.random.randn(nSNe)   # Colour
         x1 = 3*np.random.randn(nSNe)    # Stretch
     
         for i in range(nSNe):
             x0 = 10**((29.69 - mu(z[i]))/2.5)   # Amplitude (?)
             p = {'z': z[i], 't0': t0[i], 'x0': x0, 'x1': x1[i], 'c': c[i]}
-            params.append(p)        
-    
-    true_file = folder + 'true_parameters.txt'
-    tf = open(true_file, 'w')
-    
-    for t in range(nSNe):
-        # CREATING TABLE OF OBSERVATIONS            
-        if (obs_in == []):
+            params.append(p) 
+            
+        # Set Observations
+        for t in range(nSNe):
             tdet = np.random.randint(-15, -2)  # Time of init detection (mjd).
             tobs = np.random.randint(25, 65)  # Total observing period (days).
             time = (params[t].get('t0')
@@ -126,13 +194,12 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
             ZP = 25. # Zero point for scaling (filler val)
             gain = 1. # Filler value
             skynoise = 100. # Filler value
-        else:
-            time = obs_in[t][0]
-            nObs = obs_in[t][1]
-            ZP = obs_in[t][2]
-            gain = obs_in[t][3]
-            skynoise = obs_in[t][4]
-            
+
+    
+    true_file = folder + 'true_parameters.txt'
+    tf = open(true_file, 'w')
+    
+    for t in range(nSNe):            
         o_t = []
 
         # Adds 12s offset time between observations in different filters
@@ -150,8 +217,9 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
                      'gain':nPoints*[gain],
                      'skynoise':nPoints*[skynoise]
                      }  
-        observing_list.append(obs_util) 
+        obs_out.append(obs_util) 
         obs = Table(observing_dictionary)
+        
         lc = sncosmo.realize_lcs(obs, model, [params[t]])
         lcs.append(lc[0])
         
@@ -180,18 +248,17 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
         print 'True parameters for supernova %s saved in %s \n'\
                %((t + 1), true_file)
     tf.close
-    return lcs, params, observing_list, coords
+    dict_out = {'Parameters': params, 'Coordinates': coords, 
+                 'Observations': obs_out}
+    save_obj(dict_out, folder+'sn_dict')
+    print 'Properties of simulation saved in %ssn_dict.pkl'%folder
+
+    return lcs
+    
+# FITTING -------------------------------------------------------------
                    
-def get_coords(nSNe):
-    # Generating random coords for dustmap.
-    # Galactic longitude.
-    l = np.random.uniform(0, 360, nSNe).tolist()       
-    # Galactic latitude.
-    b = np.random.uniform(-90, -30, nSNe).tolist()
-    coords=[l,b]
-    return coords
                    
-def fit_snlc(lightcurve, coords, folder='TestFiles/'):
+def fit_snlc(lightcurve, folder='TestFiles/', properties=''):
                        
     """ Utility function for fitting lightcurves to 
     observations of multiple SN """
@@ -199,10 +266,17 @@ def fit_snlc(lightcurve, coords, folder='TestFiles/'):
     # Create text file for storing 'fitted' parameters for each SN.
     fitted_file = folder + 'fitted_parameters.txt'
     ff = open(fitted_file, 'w')
+    nSNe = len(lightcurve)
+    # Get coordinates
+    if properties:
+        sn_dict = load_obj(properties)
+        coords_in = sn_dict['Coordinates']
+    else:
+        coords_in = get_coords(nSNe)
       
-    for i in range(len(lightcurve)):
-        sn_ords = [el[i] for el in coords]
-        p = fit_util_lc(lightcurve[i], i + 1, folder, sn_ords)
+    for i in range(nSNe):
+        coords_out = [el[i] for el in coords_in]
+        p = fit_util_lc(lightcurve[i], i + 1, folder, coords_out)
         
         # Write fitted parameters in text file.
         ff.write('SN%s: '%(i+1))
@@ -221,21 +295,53 @@ def fit_snlc(lightcurve, coords, folder='TestFiles/'):
                        
     return
                            
-                           
-def get_lc(filelist):
-                               
-    """ Reads lightcurves from files
-        File names should be in a list
-        Returns list of light curve tables """
-                               
-    lc = []
+                     
 
-    for i in range(len(filelist)):
-        print 'Reading light curve of supernova %s \n'%(i + 1)
-        x = sncosmo.read_lc(filelist[i])
-        lc.append(x)
-        
-    return lc
+
+def fit_util_lc(data, index, folder, coords_in):
+                   
+    """ Fits SALT2 light curve to a supernova observation
+        Plots model, data and residuals """
+                   
+    print 'Fitting light curve for supernova %s'%index
+                   
+    plotname = folder + 'fitted_lc_%s.pdf'%index
+    
+    ebv = dustmap.ebv(coords_in[0], coords_in[1], frame='galactic', 
+                      unit='degree')
+    
+    model.set(mwebv=ebv)
+    
+                   
+    # Fitting SALT2 model using MCMC. 
+    result, fitted_model = fit(data, model,
+                               # Parameters of model to vary.
+                               ['z', 't0', 'x0', 'x1', 'c'], 
+                               bounds={'z':(0.001, 0.1)}, minsnr=3.0
+                               )
+    
+    fitted_params = dict([(result.param_names[0], result.parameters[0]),
+                          (result.param_names[1], result.parameters[1]),
+                          (result.param_names[2], result.parameters[2]),
+                          (result.param_names[3], result.parameters[3]),
+                          (result.param_names[4], result.parameters[4])
+                          ])
+                   
+    pp = PdfPages(plotname)
+    
+    sncosmo.plot_lc(data, model=fitted_model, 
+                    errors=result.errors, fname=pp, format='pdf'
+                    )
+    
+    pp.close()
+                   
+    print 'Fitted light curve plotted in ' + plotname
+    
+    return fitted_params
+                
+    
+    
+      
     
 def get_diff(folder):
     
@@ -322,64 +428,3 @@ def get_diff(folder):
     
     return
     
-
-# UTILITY FNS --------------------------------------------------------
-
-
-def ensure_dir(f):
-    
-    """ Checks if specified path exists, and creates it if not. """
-    
-    d = os.path.dirname(f)
-    if not os.path.exists(d):
-        os.makedirs(d)
-        
-
-def mu(z):
-    
-    """ Distance modulus formula used to obtain x0. """
-            
-    d_L = LIGHT*(z + 0.5*(1 - Q0)*z **2)/H0
-    return 5*np.log10(d_L) + 25
-
-def fit_util_lc(data, index, folder, coords):
-                   
-    """ Fits SALT2 light curve to a supernova observation
-        Plots model, data and residuals """
-                   
-    print 'Fitting light curve for supernova %s'%index
-                   
-    plotname = folder + 'fitted_lc_%s.pdf'%index
-    
-    ebv = dustmap.ebv(coords[0], coords[1], frame='galactic', 
-                      unit='degree')
-    
-    model.set(mwebv=ebv)
-    
-                   
-    # Fitting SALT2 model using MCMC. 
-    result, fitted_model = fit(data, model,
-                               # Parameters of model to vary.
-                               ['z', 't0', 'x0', 'x1', 'c'], 
-                               bounds={'z':(0.001, 0.1)}, minsnr=1.0
-                               )
-    
-    fitted_params = dict([(result.param_names[0], result.parameters[0]),
-                          (result.param_names[1], result.parameters[1]),
-                          (result.param_names[2], result.parameters[2]),
-                          (result.param_names[3], result.parameters[3]),
-                          (result.param_names[4], result.parameters[4])
-                          ])
-                   
-    pp = PdfPages(plotname)
-    
-    sncosmo.plot_lc(data, model=fitted_model, 
-                    errors=result.errors, fname=pp, format='pdf'
-                    )
-    
-    pp.close()
-                   
-    print 'Fitted light curve plotted in ' + plotname
-    
-    return fitted_params
-                

@@ -12,24 +12,27 @@ THEN fit SALT2 model to observations.
 
 import run_sncosmo as run
 
-dir = '100sim/noK/cad4/'
-dir2 = '100sim/K/cad4/'
+dir1 = 'randomDir/'
+dir2 = 'randomDir2/'
+nSNe = 1
 
 # Generates random SN and simulates observed data.
-no_k_lc, params, obs = run.simulate_lc(nSNe=100, cadence=4, folder=dir)
-k_lc, params2, obs2 = run.simulate_lc(nSNe=100, cadence=4, folder=dir2, 
-                                kpass=True, params=params, obs_in=obs)
+no_k_lc = run.simulate_lc(nSNe=nSNe, cadence=4, folder=dir1)
+k_lc = run.simulate_lc(nSNe=nSNe, cadence=4, folder=dir2, kpass=True, 
+                       properties=dir1+'sn_dict')
+
 
 
 # Import list of lightcurves from files (if not simulating above).
 #test_1 = run.get_lc(['TestFiles/observed_lc_1.txt', 
 #                     'TestFiles/observed_lc_2.txt'
 #                     ])
-
+# Get random coordinates for imported lc SN (if not provided)
+#coords3 = run.get_coords(nSNe=2)
 
 # Fit SALT2 models to list of observed light curves.
-res1 = run.fit_snlc(no_k_lc, folder=dir)
-res2 = run.fit_snlc(k_lc, folder=dir2)
+run.fit_snlc(no_k_lc, folder=dir1, properties=dir1+'sn_dict')
+run.fit_snlc(k_lc, folder=dir2, properties=dir2+'sn_dict')
 
 # Calculate differences between true and fitted paramaters
 #run.get_diff(dir)
