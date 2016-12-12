@@ -22,7 +22,7 @@ Basic instructions:
 
 2. Edit the wrapper.py code for your desired simulations.  Available methods include:
 
-   *  simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/', tmin=57754, tmax=58118, zmin=0.001, zmax=0.1, properties=''): Returns list of 'observed' lightcurves.  
+   *  simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/', tmin=57754, tmax=58118, zmin=0.001, zmax=0.1, properties=''): Returns list of 'observed' lightcurves. 
    SN parameters are saved in true_parameters.txt; simulated observations for SN 'n' are saved in observed_lc_n.txt; simulation features are saved in sn_dict.pkl.
    Inputs:
    - nSNe: number of SN to simulate (if 0, takes expected SN rate from SNCosmo based on SkyMapper field of view).
@@ -60,8 +60,15 @@ About files:
   All of these filters then become available for the simulation code to use as desired.  To include additional filters, register them in filters.py and then add them to filter lists at top of run_sncosmo.py
   
 * run_sncosmo.py does all of the heavy lifting, and should only be changed with caution.  A brief overview of the code follows:
-  - Cosmology and telescope parameters are set (field of view, filter sets, h0, ...)
-  - 
+  - Cosmology and telescope parameters are set (field of view, filter sets, h0, ...).
+  - ensure_dir() handles path creation.
+  - get_coords() generates random galactic coordinates for SN.
+  - get_lc() reads lightcurves, if using existing set of observations (instead of a simulation).
+  - mu(z) gets x0 value
+  - save_obj() and load_obj() handle the .pkl feature dictionaries.
+  - simulate_lc() simulates observations of a set of SN, based on a range on inputs.
+  - fit_snlc() splits lists of observed light curves and passes each one to fit_util_snlc() for SALT2 model fitting.
+  - get_dif() doesn't do much yet, but it will!
 
 * wrapper.py is a wrapper script, used to run a complete simulation and fitting of a set of SN.  The example script currently runs simulated observations of the same 5 SN at a cadence of 4 days, both with and without kepler filters, and then fits SALT2 models to the observations.
 
