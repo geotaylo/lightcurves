@@ -50,16 +50,6 @@ model = sncosmo.Model(source='salt2',
 
 # UTILITY FNS ---------------------------------------------------------
 
-def save_obj(obj, name ):
-    with open(name + '.pkl', 'wb') as f:
-        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
-
-        
-def load_obj(name ):
-    with open(name + '.pkl', 'rb') as f:
-        return pickle.load(f)
-
-
 def ensure_dir(f):
     
     """ Checks if specified path exists, and creates it if not. """
@@ -97,8 +87,16 @@ def get_lc(filelist):
         lcs.append(lc)
         
     return lcs
-    
 
+    
+def load_obj(name):
+    
+    """ Opens dictionary from file """
+    
+    with open(name + '.pkl', 'rb') as f:
+        return pickle.load(f)
+
+        
 def mu(z):
     
     """ Distance modulus formula used to obtain x0. """
@@ -107,6 +105,13 @@ def mu(z):
 
     return 5*np.log10(d_L) + 25
 
+
+def save_obj(obj, name):
+    
+    """Saves dictionary to file """
+    
+    with open(name + '.pkl', 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 
 # SIMULATING ----------------------------------------------------------
