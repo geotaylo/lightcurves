@@ -113,7 +113,7 @@ def mu(z):
 
 def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
                 tmin=57754, tmax=58118, zmin=0.001, zmax=0.1,
-                properties=''
+                properties='', follow_up=False
                 ):
 
     """ Generate SN parameters and simulate 'observed' light curve
@@ -127,6 +127,8 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
                    zmax = 0.100 (max redshift detectable by SkyMapper)
                    properties = '' (path and name of dictionary of SN
                      parameters to use.  If blank, generates new params)
+                   follow_up = False (if true, use 'good seeing'
+                    observing properties
     """
 
     # Maintenance
@@ -201,17 +203,28 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
             t_all.append(time)
             gain = 1. # Filler value
             skynoise = 100. # Filler value
-            zp = np.random.normal(26.823, 0.791, len(time)*len(bands))
-            # good seeing
             zp_sn = []
-            zp_g = (np.random.normal(26.87, 0.68, len(time)))
-            zp_i = (np.random.normal(25.85, 0.81, len(time)))
-            zp_r = (np.random.normal(26.63, 0.67, len(time)))
-            zp_v = (np.random.normal(24.91, 0.70, len(time)))
+
+            if follow_up:
+                zp_g = (np.random.normal(26.87, 0.68, len(time)))
+                zp_i = (np.random.normal(25.85, 0.81, len(time)))
+                zp_r = (np.random.normal(26.63, 0.67, len(time)))
+                zp_v = (np.random.normal(24.91, 0.70, len(time)))
+            else:
+                zp_g = (np.random.normal(26.82, 0.79, len(time)))
+                zp_i = (np.random.normal(25.21, 0.36, len(time)))
+                zp_r = (np.random.normal(26.71, 0.76, len(time)))
+                # No v in bad seeing
+                zp_v = (np.random.normal(24.91, 0.70, len(time)))
             zp_k = [25.47]*len(time)
             # order is important
-            for tt in range(len(time)):
-                zp_sn.extend([zp_v[tt], zp_g[tt], zp_r[tt], zp_i[tt]]) #, zp_k[tt]])
+            if kpass:
+                for tt in range(len(time)):
+                    zp_sn.extend([zp_v[tt], zp_g[tt], zp_r[tt], zp_i[tt],
+                                  zp_k[tt]])
+            else:
+                for tt in range(len(time)):
+                    zp_sn.extend([zp_v[tt], zp_g[tt], zp_r[tt], zp_i[tt]])
             zp_all.append(zp_sn)
 
 
