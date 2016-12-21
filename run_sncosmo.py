@@ -13,6 +13,7 @@ Requires installation of:
 import os
 import csv
 import pickle
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 from astropy.table import Table
@@ -47,7 +48,7 @@ model = sncosmo.Model(source='salt2',
                       effect_frames=['rest', 'obs'])
 
 
-# UTILITY FNS ---------------------------------------------------------
+# UTILITY FNS -----------------------------------------------------------------
 
 def save_obj(obj, name):
     with open(name + '.pkl', 'wb') as f:
@@ -77,27 +78,9 @@ def get_coords(nSNe):
     # Galactic latitude.
     b = np.random.uniform(-90, -30, nSNe).tolist()
 
-    coords = [l,b]
+    coords = [l, b]
 
     return coords
-
-
-def get_lc(filelist):
-
-    """ Reads lightcurves from files
-        File names should be in a list
-        Returns list of light curve tables """
-
-    filters.register_filters()
-
-    lcs = []
-
-    for i in range(len(filelist)):
-        print 'Reading light curve of supernova %s \n' %(i + 1)
-        lc = sncosmo.read_lc(filelist[i])
-        lcs.append(lc)
-
-    return lcs
 
 
 def mu(z):
@@ -109,13 +92,25 @@ def mu(z):
     return 5*np.log10(d_L) + 25
 
 
-# SIMULATING ----------------------------------------------------------
+def get_skynoise(sigma_psf, sigma_pixel):
+
+    """ Calculates skynoise (background contribution to flux measurement
+        error), assuming seeing-dominated gaussian psf with perfect psf
+        photometry.
+        sigma_psf = std. deviation of psf (pixels)
+        sigma_pixel = background noise in single pixel (in counts)
+    """
+
+    return 4*math.pi*sigma_psf*sigma_pixel
+
+
+# OBTAINING LC ----------------------------------------------------------------
 
 
 def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
                 tmin=57754, tmax=58118, zmin=0.001, zmax=0.1,
                 properties='', follow_up=False
-                ):
+               ):
 
     """ Generate SN parameters and simulate 'observed' light curve
         Defaults:  nSNe = 0 (number of SN)
@@ -186,7 +181,7 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
                                   time=(tmax - tmin), area=AREA)
                                   )
             nSNe = len(z)
-            print 'Obtained %s'%nSNe \
+            print 'Obtained %s' %nSNe \
                   + ' redshifts from sncosmo distribution. \n'
         else:
             z = np.random.uniform(zmin, zmax, size=nSNe)
@@ -212,8 +207,8 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
                   + np.arange(tdet, tdet + tobs, cadence)).tolist()
             n_obs.append(len(tt))
             time.append(tt)
-            gain = [1.]*len(tt)
-            skynoise = [100.]*len(tt)  # Filler value
+            gain = [1.]*len(bands)
+            sn = [100.]*(len(bands)*len(tt))  # Filler value for skynoise
 
             if follow_up:
                 zp_g = (np.random.normal(26.87, 0.68, len(tt)))
@@ -231,8 +226,10 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
             # order is important
             if kpass:
                 zp_sn.append(zp_k)
+                sn[-len(tt):] = [0.]*len(tt)
             zp_sn = [item for sublist in zp_sn for item in sublist]
             zp_all.append(zp_sn)
+            skynoise.append(sn)
 
     true_file = folder + 'true_parameters.txt'
     tf = open(true_file, 'w')
@@ -253,21 +250,12 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
 
         # List of observing properties for each SN, to return
         obs_util = [time[t], n_obs[t], zp_all[t], gain, skynoise, bands]
-        #print len(observing_bands)
-        #print len(observing_time)
-        #print len(zp_all)
-        #print n_points
-        #print len(zp_sys)
-        #print len(gain)
-        #print len(skynoise)
-        print gain[t]
-        print skynoise[t]
         observing_dictionary = {'band': observing_bands,
                                 'time': observing_time,
                                 'zp': zp_all[t],
                                 'zpsys': n_points*['ab'],
                                 'gain': n_points*[gain[t]],
-                                'skynoise': n_points*[skynoise[t]]
+                                'skynoise': skynoise[t]
                                 }
 
         obs_out.append(obs_util)
@@ -309,7 +297,25 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
     return lcs
 
 
-# FITTING -------------------------------------------------------------
+def get_lc(filelist):
+
+    """ Reads lightcurves from files
+        File names should be in a list
+        Returns list of light curve tables """
+
+    filters.register_filters()
+
+    lcs = []
+
+    for i in range(len(filelist)):
+        print 'Reading light curve of supernova %s \n' %(i + 1)
+        lc = sncosmo.read_lc(filelist[i])
+        lcs.append(lc)
+
+    return lcs
+
+
+# FITTING ---------------------------------------------------------------------
 
 
 def fit_snlc(lightcurve, folder='TestFiles/', properties=''):
