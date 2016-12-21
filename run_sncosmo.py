@@ -34,7 +34,7 @@ LIGHT = 3*10**5  # km/s
 H0 = 70.  # km/s/Mpc
 
 smbands = ['smv', 'smg', 'smr', 'smi']  # SkyMapper bandpasses to use.
-allbands = ['smv', 'smg', 'smr', 'smi','kst']  # SkyMapper + KST bands
+allbands = ['smv', 'smg', 'smr', 'smi', 'kst']  # SkyMapper + KST bands
 
 dust = sncosmo.CCM89Dust()
 
@@ -49,12 +49,12 @@ model = sncosmo.Model(source='salt2',
 
 # UTILITY FNS ---------------------------------------------------------
 
-def save_obj(obj, name ):
+def save_obj(obj, name):
     with open(name + '.pkl', 'wb') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 
-def load_obj(name ):
+def load_obj(name):
     with open(name + '.pkl', 'rb') as f:
         return pickle.load(f)
 
@@ -88,10 +88,12 @@ def get_lc(filelist):
         File names should be in a list
         Returns list of light curve tables """
 
+    filters.register_filters()
+
     lcs = []
 
     for i in range(len(filelist)):
-        print 'Reading light curve of supernova %s \n'%(i + 1)
+        print 'Reading light curve of supernova %s \n' %(i + 1)
         lc = sncosmo.read_lc(filelist[i])
         lcs.append(lc)
 
@@ -102,10 +104,9 @@ def mu(z):
 
     """ Distance modulus formula used to obtain x0. """
 
-    d_L = LIGHT*(z + 0.5*(1 - Q0)*z **2)/H0
+    d_L = LIGHT * (z + 0.5 * (1 - Q0) * z ** 2) / H0
 
     return 5*np.log10(d_L) + 25
-
 
 
 # SIMULATING ----------------------------------------------------------
@@ -141,8 +142,13 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
     else:
         bands = smbands
 
-    lcs=[]
+    lcs = []
     obs_out = []
+    time = []
+    n_obs = []
+    zp_all = []
+    gain = []
+    skynoise = []
 
     # Load dictionary of SN properties
     if properties:
@@ -152,11 +158,20 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
         obs_in = sn_dict['Observations']
 
         for n in range(nSNe):
-            time = obs_in[n][0]
-            n_obs = obs_in[n][1]
-            zp = obs_in[n][2]
-            gain = obs_in[n][3]
-            skynoise = obs_in[n][4]
+            zp_sn = []
+            time.append(obs_in[n][0])
+            n_obs.append(obs_in[n][1])
+            zp_sn.append(obs_in[n][2])
+            gain = (obs_in[n][3])
+            skynoise = (obs_in[n][4])
+            s = set(obs_in[n][5])
+
+            if 'kst' not in s:
+                # Add kst zps to end
+                zp_sn.append([25.47]*n_obs[n])
+                zp_sn = [item for sublist in zp_sn for item in sublist]
+            #flattening
+            zp_all.append(zp_sn)
 
     # Generate SN properties
     else:
@@ -175,10 +190,11 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
                   + ' redshifts from sncosmo distribution. \n'
         else:
             z = np.random.uniform(zmin, zmax, size=nSNe)
-            print 'Obtained %s'%nSNe \
+            print 'Obtained %s' %nSNe \
                   + ' redshifts from uniform distribution. \n'
 
-        t0 = np.random.uniform(tmin, tmax, nSNe) # Time at lightcurve peak (mjd).
+        # Time at lightcurve peak (mjd).
+        t0 = np.random.uniform(tmin, tmax, nSNe)
         c = 0.3*np.random.randn(nSNe)   # Colour
         x1 = 3*np.random.randn(nSNe)    # Stretch
 
@@ -187,69 +203,72 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
             p = {'z': z[i], 't0': t0[i], 'x0': x0, 'x1': x1[i], 'c': c[i]}
             params.append(p)
 
-
         # Observations
         # ZP - distribuitons taken from SkYMapper obs paramteres
-        zp_all = []
-        n_obs = []
-        t_all = []
-
         for t in range(nSNe):
             tdet = np.random.randint(-15, -2)  # Time of init detection (mjd).
             tobs = np.random.randint(25, 65)  # Total observing period (days).
-            time = (params[t].get('t0')
-                    + np.arange(tdet, tdet + tobs, cadence)).tolist()
-            n_obs.append(len(time))
-            t_all.append(time)
-            gain = 1. # Filler value
-            skynoise = 100. # Filler value
-            zp_sn = []
+            tt = (params[t].get('t0')
+                  + np.arange(tdet, tdet + tobs, cadence)).tolist()
+            n_obs.append(len(tt))
+            time.append(tt)
+            gain = [1.]*len(tt)
+            skynoise = [100.]*len(tt)  # Filler value
 
             if follow_up:
-                zp_g = (np.random.normal(26.87, 0.68, len(time)))
-                zp_i = (np.random.normal(25.85, 0.81, len(time)))
-                zp_r = (np.random.normal(26.63, 0.67, len(time)))
-                zp_v = (np.random.normal(24.91, 0.70, len(time)))
+                zp_g = (np.random.normal(26.87, 0.68, len(tt)))
+                zp_i = (np.random.normal(25.85, 0.81, len(tt)))
+                zp_r = (np.random.normal(26.63, 0.67, len(tt)))
+                zp_v = (np.random.normal(24.91, 0.70, len(tt)))
             else:
-                zp_g = (np.random.normal(26.82, 0.79, len(time)))
-                zp_i = (np.random.normal(25.21, 0.36, len(time)))
-                zp_r = (np.random.normal(26.71, 0.76, len(time)))
+                zp_g = (np.random.normal(26.82, 0.79, len(tt)))
+                zp_i = (np.random.normal(25.21, 0.36, len(tt)))
+                zp_r = (np.random.normal(26.71, 0.76, len(tt)))
                 # No v in bad seeing
-                zp_v = (np.random.normal(24.91, 0.70, len(time)))
-            zp_k = [25.47]*len(time)
+                zp_v = (np.random.normal(24.91, 0.70, len(tt)))
+            zp_k = [25.47]*len(tt)
+            zp_sn = [zp_v, zp_g, zp_r, zp_i]
             # order is important
             if kpass:
-                for tt in range(len(time)):
-                    zp_sn.extend([zp_v[tt], zp_g[tt], zp_r[tt], zp_i[tt],
-                                  zp_k[tt]])
-            else:
-                for tt in range(len(time)):
-                    zp_sn.extend([zp_v[tt], zp_g[tt], zp_r[tt], zp_i[tt]])
+                zp_sn.append(zp_k)
+            zp_sn = [item for sublist in zp_sn for item in sublist]
             zp_all.append(zp_sn)
-
-
 
     true_file = folder + 'true_parameters.txt'
     tf = open(true_file, 'w')
 
     for t in range(nSNe):
         o_t = []
+        observing_bands = []
 
         # Adds 12s offset time between observations in different filters
         for x in range(len(bands)):
-            j = np.array(t_all[t]) + 0.00013888888*x
+            j = np.array(time[t]) + 0.00013888888*x
             o_t.append(j.tolist())
+            a = n_obs[t]*[bands[x]]
+            observing_bands.extend(a)
         observing_time = [item for sublist in o_t for item in sublist]
 
-        nPoints = n_obs[t]*len(bands)
-        obs_util = [t_all[t], n_obs[t], zp_all[t], gain, skynoise]
-        observing_dictionary = {'band':np.array(n_obs[t]*bands),
-                     'time': sorted(observing_time),
-                     'zp':zp_all[t],
-                     'zpsys':nPoints*['ab'],
-                     'gain':nPoints*[gain],
-                     'skynoise':nPoints*[skynoise]
-                     }
+        n_points = n_obs[t]*len(bands)
+
+        # List of observing properties for each SN, to return
+        obs_util = [time[t], n_obs[t], zp_all[t], gain, skynoise, bands]
+        #print len(observing_bands)
+        #print len(observing_time)
+        #print len(zp_all)
+        #print n_points
+        #print len(zp_sys)
+        #print len(gain)
+        #print len(skynoise)
+        print gain[t]
+        print skynoise[t]
+        observing_dictionary = {'band': observing_bands,
+                                'time': observing_time,
+                                'zp': zp_all[t],
+                                'zpsys': n_points*['ab'],
+                                'gain': n_points*[gain[t]],
+                                'skynoise': n_points*[skynoise[t]]
+                                }
 
         obs_out.append(obs_util)
         obs = Table(observing_dictionary)
@@ -289,6 +308,7 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
 
     return lcs
 
+
 # FITTING -------------------------------------------------------------
 
 
@@ -315,7 +335,7 @@ def fit_snlc(lightcurve, folder='TestFiles/', properties=''):
         p = fit_util_lc(lightcurve[i], i + 1, folder, coords_out)
 
         # Write fitted parameters in text file.
-        ff.write('SN%s: '%(i+1))
+        ff.write('SN%s: ' %(i+1))
 
         for key in sorted(p):
             ff.write('%s:%s ' % (key, p[key]))
@@ -323,7 +343,7 @@ def fit_snlc(lightcurve, folder='TestFiles/', properties=''):
         ff.write('\n')
 
         print 'Fitted parameters for supernova %s saved in %s \n'\
-               %((i + 1), fitted_file)
+            %((i + 1), fitted_file)
 
     ff.close()
 
@@ -332,28 +352,25 @@ def fit_snlc(lightcurve, folder='TestFiles/', properties=''):
     return
 
 
-
-
 def fit_util_lc(data, index, folder, coords_in):
 
     """ Fits SALT2 light curve to a supernova observation
         Plots model, data and residuals """
 
-    print 'Fitting light curve for supernova %s'%index
+    print 'Fitting light curve for supernova %s' %index
 
-    plotname = folder + 'fitted_lc_%s.pdf'%index
+    plotname = folder + 'fitted_lc_%s.pdf' %index
 
     ebv = dustmap.ebv(coords_in[0], coords_in[1], frame='galactic',
                       unit='degree')
 
     model.set(mwebv=ebv)
 
-
     # Fitting SALT2 model using MCMC.
     result, fitted_model = fit(data, model,
                                # Parameters of model to vary.
                                ['z', 't0', 'x0', 'x1', 'c'],
-                               bounds={'z':(0.001, 0.1)}, minsnr=2.0
+                               bounds={'z': (0.001, 0.1)}, minsnr=2.0
                                )
 
     fitted_params = dict([(result.param_names[0], result.parameters[0]),
@@ -376,9 +393,6 @@ def fit_util_lc(data, index, folder, coords_in):
     return fitted_params
 
 
-
-
-
 def get_diff(folder):
 
     """ Reads text files of fitted and true parameters, and calculates
@@ -393,9 +407,9 @@ def get_diff(folder):
     fitted_x1 = []
     fitted_z = []
 
-    with open(fp, 'rb') as file:
+    with open(fp, 'rb') as f:
 
-        reader = csv.reader(file,delimiter=' ')
+        reader = csv.reader(f, delimiter=' ')
 
         for row in reader:
 
@@ -415,7 +429,7 @@ def get_diff(folder):
 
     with open(tp, 'rb') as file:
 
-        reader = csv.reader(file,delimiter=' ')
+        reader = csv.reader(file, delimiter=' ')
 
         for row in reader:
 
@@ -453,13 +467,11 @@ def get_diff(folder):
     axarr[4].set_ylabel('z')
     f.savefig(plotname)
 
-
     for i in range(len(true_c)):
         c_diff = c_diff + abs(true_c[i] - fitted_c[i])
         t0_diff = t0_diff + abs(true_t0[i] - fitted_t0[i])
         x0_diff = x0_diff + abs(true_x0[i] - fitted_x0[i])
         x1_diff = x1_diff + abs(true_x1[i] - fitted_x1[i])
         z_diff = z_diff + abs(true_z[i] - fitted_z[i])
-
 
     return
