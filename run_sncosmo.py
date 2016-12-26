@@ -73,12 +73,13 @@ def get_coords(nSNe):
 
     """ Generates random galactic coordinates for SN """
 
-    # Galactic longitude.
-    l = np.random.uniform(0, 360, nSNe).tolist()
-    # Galactic latitude.
-    b = np.random.uniform(-90, -30, nSNe).tolist()
+    # Right ascension
+    ra = np.random.uniform(0, 360, nSNe).tolist()
 
-    coords = [l, b]
+    # Declination
+    dec = np.random.uniform(-90, 10, nSNe).tolist()
+
+    coords = [ra, dec]
 
     return coords
 
@@ -367,8 +368,7 @@ def fit_util_lc(data, index, folder, coords_in):
 
     plotname = folder + 'fitted_lc_%s.pdf' %index
 
-    ebv = dustmap.ebv(coords_in[0], coords_in[1], frame='galactic',
-                      unit='degree')
+    ebv = dustmap.ebv(coords_in[0], coords_in[1])
 
     model.set(mwebv=ebv)
 
