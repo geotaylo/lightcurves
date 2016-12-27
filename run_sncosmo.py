@@ -34,9 +34,6 @@ Q0 = 0.2
 LIGHT = 3*10**5  # km/s
 H0 = 70.  # km/s/Mpc
 
-smbands = ['smv', 'smg', 'smr', 'smi']  # SkyMapper bandpasses to use.
-allbands = ['smv', 'smg', 'smr', 'smi', 'kst']  # SkyMapper + KST bands
-
 dust = sncosmo.CCM89Dust()
 
 # Change path to location of dustmaps
@@ -134,9 +131,16 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
 
     # Select filters.
     if kpass:
-        bands = allbands
+        if follow_up:
+            bands = ['smg', 'smr', 'smi', 'smv', 'kst']
+        else:
+            bands = ['smg', 'smr', 'smi', 'kst']
     else:
-        bands = smbands
+        if follow_up:
+            bands = ['smg', 'smr', 'smi', 'smv']
+        else:
+            bands = ['smg', 'smr', 'smi']
+
 
     lcs = []
     obs_out = []
@@ -154,20 +158,43 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
         obs_in = sn_dict['Observations']
 
         for n in range(nSNe):
-            zp_sn = []
+            zp_hold = []
+            noise_hold = []
             time.append(obs_in[n][0])
             n_obs.append(obs_in[n][1])
-            zp_sn.append(obs_in[n][2])
+            zp_hold.append(obs_in[n][2])
+            noise_hold.append(obs_in[n][4])
             gain = (obs_in[n][3])
-            skynoise = (obs_in[n][4])
             s = set(obs_in[n][5])
 
-            if 'kst' not in s:
-                # Add kst zps to end
-                zp_sn.append([25.47]*n_obs[n])
-                zp_sn = [item for sublist in zp_sn for item in sublist]
+            if follow_up:
+                if 'smv' not in s:
+                    zp_v = (np.random.normal(24.91, 0.70, n_obs[n]))
+                    zp_hold.append(zp_v)
+                    #zp_hold = [item for sublist in zp_hold for item in sublist]
+
+                    noise = [100]*n_obs[n]
+                    noise_hold.append(noise)
+                    #noise_hold = [item for sublist in noise_hold for item in sublist]
+
+            if kpass:
+                if 'kst' not in s:
+                    # Add kst zps to end
+                    zp_k = [25.47]*n_obs[n]
+                    zp_hold.append(zp_k)
+                    #zp_hold = [item for sublist in zp_hold for item in sublist]
+
+                    noise = [0]*n_obs[n]
+                    noise_hold.append(noise)
+                    #noise_hold = [item for sublist in noise_hold for item in
+                    #              sublist]
             #flattening
-            zp_all.append(zp_sn)
+            zp_hold = [item for sublist in zp_hold for item in sublist]
+            noise_hold = [item for sublist in noise_hold for item in
+                          sublist]
+
+            zp_all.append(zp_hold)
+            skynoise.append(noise_hold)
 
     # Generate SN properties
     else:
@@ -216,14 +243,15 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
                 zp_i = (np.random.normal(25.85, 0.81, len(tt)))
                 zp_r = (np.random.normal(26.63, 0.67, len(tt)))
                 zp_v = (np.random.normal(24.91, 0.70, len(tt)))
+                zp_sn = [zp_g, zp_r, zp_i, zp_v]
             else:
                 zp_g = (np.random.normal(26.82, 0.79, len(tt)))
                 zp_i = (np.random.normal(25.21, 0.36, len(tt)))
                 zp_r = (np.random.normal(26.71, 0.76, len(tt)))
-                # No v in bad seeing
-                zp_v = (np.random.normal(24.91, 0.70, len(tt)))
+                zp_sn = [zp_g, zp_r, zp_i]
+
             zp_k = [25.47]*len(tt)
-            zp_sn = [zp_v, zp_g, zp_r, zp_i]
+
             # order is important
             if kpass:
                 zp_sn.append(zp_k)
@@ -250,7 +278,7 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
         n_points = n_obs[t]*len(bands)
 
         # List of observing properties for each SN, to return
-        obs_util = [time[t], n_obs[t], zp_all[t], gain, skynoise, bands]
+        obs_util = [time[t], n_obs[t], zp_all[t], gain, skynoise[t], bands]
         observing_dictionary = {'band': observing_bands,
                                 'time': observing_time,
                                 'zp': zp_all[t],
@@ -376,7 +404,7 @@ def fit_util_lc(data, index, folder, coords_in):
     result, fitted_model = fit(data, model,
                                # Parameters of model to vary.
                                ['z', 't0', 'x0', 'x1', 'c'],
-                               bounds={'z': (0.001, 0.1)}, minsnr=2.0
+                               bounds={'z': (0.001, 0.1)}, minsnr=3.0
                                )
 
     fitted_params = dict([(result.param_names[0], result.parameters[0]),
