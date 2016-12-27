@@ -90,7 +90,7 @@ def mu(z):
     return 5*np.log10(d_L) + 25
 
 
-def get_skynoise(sigma_psf, sigma_pixel):
+def get_skynoise(filter, seeing):
 
     """ Calculates skynoise (background contribution to flux measurement
         error), assuming seeing-dominated gaussian psf with perfect psf
@@ -98,6 +98,34 @@ def get_skynoise(sigma_psf, sigma_pixel):
         sigma_psf = std. deviation of psf (pixels)
         sigma_pixel = background noise in single pixel (in counts)
     """
+    if filter == 'smg':
+        if seeing == 'good':
+            sigma_psf = 1.57
+            sigma_pixel = 24.08
+        else:
+            sigma_psf = 2.03
+            sigma_pixel = 22.79
+
+    if filter == 'smi':
+        if seeing == 'good':
+            sigma_psf = 1.57
+            sigma_pixel = 17.32
+        else:
+            sigma_psf = 2.28
+            sigma_pixel = 13.54
+
+    if filter == 'smr':
+        if seeing == 'good':
+            sigma_psf = 2.17
+            sigma_pixel = 8.45
+        else:
+            sigma_psf = 1.95
+            sigma_pixel = 1.25
+
+    if filter == 'smv':
+        sigma_psf = 1.96
+        sigma_pixel = 6.23
+
 
     return 4*math.pi*sigma_psf*sigma_pixel
 
@@ -159,11 +187,11 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
 
         for n in range(nSNe):
             zp_hold = []
-            noise_hold = []
+            sn_hold = []
             time.append(obs_in[n][0])
             n_obs.append(obs_in[n][1])
             zp_hold.append(obs_in[n][2])
-            noise_hold.append(obs_in[n][4])
+            sn_hold.append(obs_in[n][4])
             gain = (obs_in[n][3])
             s = set(obs_in[n][5])
 
@@ -173,28 +201,26 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
                     zp_hold.append(zp_v)
                     #zp_hold = [item for sublist in zp_hold for item in sublist]
 
-                    noise = [100]*n_obs[n]
-                    noise_hold.append(noise)
-                    #noise_hold = [item for sublist in noise_hold for item in sublist]
+                    noise = [get_skynoise('smv', 'good')]*n_obs[n]
+                    sn_hold.append(noise)
 
             if kpass:
                 if 'kst' not in s:
                     # Add kst zps to end
                     zp_k = [25.47]*n_obs[n]
                     zp_hold.append(zp_k)
-                    #zp_hold = [item for sublist in zp_hold for item in sublist]
+
 
                     noise = [0]*n_obs[n]
-                    noise_hold.append(noise)
-                    #noise_hold = [item for sublist in noise_hold for item in
-                    #              sublist]
+                    sn_hold.append(noise)
+
             #flattening
             zp_hold = [item for sublist in zp_hold for item in sublist]
-            noise_hold = [item for sublist in noise_hold for item in
+            sn_hold = [item for sublist in sn_hold for item in
                           sublist]
 
             zp_all.append(zp_hold)
-            skynoise.append(noise_hold)
+            skynoise.append(sn_hold)
 
     # Generate SN properties
     else:
@@ -236,29 +262,40 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
             n_obs.append(len(tt))
             time.append(tt)
             gain = [1.]*len(bands)
-            sn = [100.]*(len(bands)*len(tt))  # Filler value for skynoise
 
             if follow_up:
                 zp_g = (np.random.normal(26.87, 0.68, len(tt)))
                 zp_i = (np.random.normal(25.85, 0.81, len(tt)))
                 zp_r = (np.random.normal(26.63, 0.67, len(tt)))
                 zp_v = (np.random.normal(24.91, 0.70, len(tt)))
-                zp_sn = [zp_g, zp_r, zp_i, zp_v]
+                zp_hold = [zp_g, zp_r, zp_i, zp_v]
+
+                sn_g = [get_skynoise('smg', 'good')] * len(tt)
+                sn_i = [get_skynoise('smi', 'good')] * len(tt)
+                sn_r = [get_skynoise('smr', 'good')] * len(tt)
+                sn_v = [get_skynoise('smv', 'good')] * len(tt)
+                sn_hold = [sn_g, sn_r, sn_i, sn_v]
             else:
                 zp_g = (np.random.normal(26.82, 0.79, len(tt)))
                 zp_i = (np.random.normal(25.21, 0.36, len(tt)))
                 zp_r = (np.random.normal(26.71, 0.76, len(tt)))
-                zp_sn = [zp_g, zp_r, zp_i]
+                zp_hold = [zp_g, zp_r, zp_i]
+
+                sn_g = [get_skynoise('smg', 'bad')] * len(tt)
+                sn_i = [get_skynoise('smi', 'bad')] * len(tt)
+                sn_r = [get_skynoise('smr', 'bad')] * len(tt)
+                sn_hold = [sn_g, sn_r, sn_i]
 
             zp_k = [25.47]*len(tt)
 
             # order is important
             if kpass:
-                zp_sn.append(zp_k)
-                sn[-len(tt):] = [0.]*len(tt)
-            zp_sn = [item for sublist in zp_sn for item in sublist]
-            zp_all.append(zp_sn)
-            skynoise.append(sn)
+                zp_hold.append(zp_k)
+                sn_hold.append([0.]*len(tt))
+            zp_hold = [item for sublist in zp_hold for item in sublist]
+            zp_all.append(zp_hold)
+            sn_hold = [item for sublist in sn_hold for item in sublist]
+            skynoise.append(sn_hold)
 
     true_file = folder + 'true_parameters.txt'
     tf = open(true_file, 'w')

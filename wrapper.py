@@ -15,35 +15,35 @@ import run_sncosmo as run
 # Edit these as needed
 
 # Paths to store simulations and results (make sure / is at end)
-dir1 = 'TestFiles/'  # Without kepler filter (1st rn)
-dir2 = 'randomDir2/'  # With kepler filter (2nd run)
+dir1 = 'Simulations/run1/cad4/30SN/no_k_bad_seeing/'
+dir2 = 'Simulations/run1/cad4/30SN/no_k_good_seeing/'
+dir3 = 'Simulations/run1/cad4/30SN/k_bad_seeing/'
+dir4 = 'Simulations/run1/cad4/30SN/k_good_seeing/'
 
 # Number of SN to simulate (if using sncosmo distribution, use 0).
-nSNe = 4    
+nSNe = 30
 
 
 # Generates random SN and simulates observed data.
 
-# Without kepler filter (1st run).
-"""run1 = run.simulate_lc(nSNe=nSNe, cadence=4, folder=dir1)
-
-# With kepler filter (2nd run).  To use the same set of SN as 1st run,
-# make sure to use dir1 as properties path.
-run2 = run.simulate_lc(nSNe=nSNe, cadence=4, folder=dir2, kpass=True, 
-                       properties=dir1+'sn_dict')"""
+run1 = run.simulate_lc(nSNe=nSNe, cadence=4, folder=dir1, kpass=False, follow_up=False)
+run2 = run.simulate_lc(nSNe=nSNe, cadence=4, folder=dir2, kpass=False, follow_up=True)
+run3 = run.simulate_lc(nSNe=nSNe, cadence=4, folder=dir3, kpass=True, follow_up=False,
+                       properties=dir1+'sn_dict')
+run4 = run.simulate_lc(nSNe=nSNe, cadence=4, folder=dir4, kpass=True, follow_up=True,
+                       properties=dir2+'sn_dict')
 
 
 # Import list of lightcurves from files (if not simulating above).
 
-run3 = run.get_lc(['TestFiles/observed_lc_1.txt', 
-                     'TestFiles/observed_lc_2.txt'
-                     ])
+#run3 = run.get_lc(['best_zps/noK/observed_lc_1.txt',
+#                     'best_zps/noK/observed_lc_2.txt'
+#                  ])
 
                         
 # Fit SALT2 models to list of observed light curves.
 
-"""run.fit_snlc(run1, folder=dir1, properties=dir1+'sn_dict')
-
-run.fit_snlc(run2, folder=dir2, properties=dir2+'sn_dict')"""
-
-run.fit_snlc(run3, folder='Testfiles2/')
+run.fit_snlc(run1, folder=dir1, properties=dir1+'sn_dict')
+run.fit_snlc(run2, folder=dir2, properties=dir2+'sn_dict')
+run.fit_snlc(run3, folder=dir3, properties=dir3+'sn_dict')
+run.fit_snlc(run4, folder=dir4, properties=dir4+'sn_dict')
