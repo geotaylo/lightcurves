@@ -1,0 +1,1 @@
+Simulations of 50 SN at cadence of 4 days, without kepler filter, with skymapper v filter.
