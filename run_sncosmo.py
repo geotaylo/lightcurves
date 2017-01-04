@@ -192,14 +192,13 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
             n_obs.append(obs_in[n][1])
             zp_hold.append(obs_in[n][2])
             sn_hold.append(obs_in[n][4])
-            gain = (obs_in[n][3])
+            gain = obs_in[n][3]
             s = set(obs_in[n][5])
 
             if follow_up:
                 if 'smv' not in s:
                     zp_v = (np.random.normal(24.91, 0.70, n_obs[n]))
                     zp_hold.append(zp_v)
-                    #zp_hold = [item for sublist in zp_hold for item in sublist]
 
                     noise = [get_skynoise('smv', 'good')]*n_obs[n]
                     sn_hold.append(noise)
@@ -209,7 +208,6 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
                     # Add kst zps to end
                     zp_k = [25.47]*n_obs[n]
                     zp_hold.append(zp_k)
-
 
                     noise = [0]*n_obs[n]
                     sn_hold.append(noise)
@@ -261,7 +259,7 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
                   + np.arange(tdet, tdet + tobs, cadence)).tolist()
             n_obs.append(len(tt))
             time.append(tt)
-            gain = [1.]*len(bands)
+            gain = 1.0
 
             if follow_up:
                 zp_g = (np.random.normal(26.87, 0.68, len(tt)))
@@ -320,7 +318,7 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
                                 'time': observing_time,
                                 'zp': zp_all[t],
                                 'zpsys': n_points*['ab'],
-                                'gain': n_points*[gain[t]],
+                                'gain': n_points*[gain],
                                 'skynoise': skynoise[t]
                                 }
 
