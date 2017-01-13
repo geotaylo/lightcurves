@@ -1,7 +1,7 @@
 """
 GT 05/12/16
 Aims to:
-a) generate SALT2 observation light curves for SN with randomly 
+a) generate SALT2 observation light curves for SN with randomly
    generated parameters and observations.
 b) take an observation light curve and fit a SALT2 model to it.
 Requires installation of:
@@ -22,6 +22,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 import sfdmap
 import sncosmo
 from sncosmo import mcmc_lc as fit
+from tabulate import tabulate
 
 import filters
 
@@ -32,7 +33,7 @@ import filters
 AREA = 5.7  # SkyMapper field of view.
 Q0 = 0.2
 LIGHT = 3*10**5  # km/s
-H0 = 70.  # km/s/Mpc
+H0 = 70.00  # km/s/Mpc
 
 dust = sncosmo.CCM89Dust()
 
@@ -462,7 +463,38 @@ def fit_util_lc(data, index, folder, coords_in):
     return fitted_params
 
 
-def get_diff(folder):
+def get_diff(folders, parent):
+
+    """ runs get_diff_util multiple times and returns table comparing results.
+        Saves table in text file.
+    """
+    x = []
+    name = 'residual_analysis.txt'
+
+    for i in range(len(folders)):
+        x.append(get_diff_util(folders[i]))
+
+    print 'Residuals Analysis:'
+    print tabulate([[folders[0], x[0][0], x[0][1], x[0][2], x[0][3], x[0][4]],
+                    [folders[1], x[1][0], x[1][1], x[1][2], x[1][3], x[1][4]],
+                    [folders[2], x[2][0], x[2][1], x[2][2], x[2][3], x[2][4]],
+                    [folders[3], x[3][0], x[3][1], x[3][2], x[3][3], x[3][4]]],
+                    headers=['Files', 'c', 't0', 'x0', 'x1', 'z'])
+
+    print 'Saving results as %s in %s'%(name, parent)
+    res_file = parent + name
+    ff = open(res_file, 'w')
+    ff.write(tabulate([[folders[0], x[0][0], x[0][1], x[0][2], x[0][3], x[0][4]],
+                    [folders[1], x[1][0], x[1][1], x[1][2], x[1][3], x[1][4]],
+                    [folders[2], x[2][0], x[2][1], x[2][2], x[2][3], x[2][4]],
+                    [folders[3], x[3][0], x[3][1], x[3][2], x[3][3], x[3][4]]],
+                    headers=['Files', 'c', 't0', 'x0', 'x1', 'z']))
+    ff.close()
+
+    return x
+
+
+def get_diff_util(folder):
 
     """ Reads text files of fitted and true parameters, and calculates
         diffences for each SN parameter """
@@ -543,4 +575,6 @@ def get_diff(folder):
         x1_diff = x1_diff + abs(true_x1[i] - fitted_x1[i])
         z_diff = z_diff + abs(true_z[i] - fitted_z[i])
 
-    return
+    res = [c_diff, t0_diff, x0_diff, x1_diff, z_diff]
+
+    return res
