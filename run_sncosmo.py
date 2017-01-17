@@ -1,14 +1,19 @@
 """
+
 GT 05/12/16
+
 Aims to:
-a) generate SALT2 observation light curves for SN with randomly
-   generated parameters and observations.
+a) generate SALT2 observation light curves for SN with randomly generated
+   parameters and observations.
 b) take an observation light curve and fit a SALT2 model to it.
+
 Requires installation of:
 - SNCosmo:  https://sncosmo.readthedocs.io/en/v1.4.x/index.html
 - Emcee:
 - sfdmap:
+
 """
+
 
 import os
 import csv
@@ -22,24 +27,56 @@ from matplotlib.backends.backend_pdf import PdfPages
 import sfdmap
 import sncosmo
 from sncosmo import mcmc_lc as fit
-from tabulate import tabulate
+#from tabulate import tabulate
 
+# filters.py should be in working directory
 import filters
 
 
-# CONSTANTS _----------------------------------------------------------
+# CONSTANTS -------------------------------------------------------------------
+
+# SkyMapper observing cadence (days)
+cad_sm = 4.
 
 
-AREA = 5.7  # SkyMapper field of view.
+# Kepler observing cadence (30 minutes, in days)
+cad_k = 1. / 48.
+
+
+# SkyMapper field of view (square degrees)
+AREA = 5.7
+
+
+# Skymapper min and max observable redshift
+zmin = 0.001
+zmax = 0.1
+
+
+# Possible observing period: all of 2017 (mjd)
+tmin = 57754
+tmax = 58118
+
+
 Q0 = 0.2
-LIGHT = 3*10**5  # km/s
-H0 = 70.00  # km/s/Mpc
 
+
+# Speed of light (km/s)
+LIGHT = 2.997*10**5
+
+
+# (km/s/Mpc)
+H0 = 70.00
+
+
+# DUSTMAPS --------------------------------------------------------------------
 dust = sncosmo.CCM89Dust()
+
 
 # Change path to location of dustmaps
 dustmap = sfdmap.SFDMap("/home/georgie/sfddata-master")
 
+
+# SALT2 MODEL TEMPLATE --------------------------------------------------------
 model = sncosmo.Model(source='salt2',
                       effects=[dust, dust],
                       effect_names=['host', 'mw'],
@@ -49,17 +86,20 @@ model = sncosmo.Model(source='salt2',
 # UTILITY FNS -----------------------------------------------------------------
 
 def save_obj(obj, name):
+    """ Utility function for saving dictionary. """
+
     with open(name + '.pkl', 'wb') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 
 def load_obj(name):
+    """ Utility function for opening dictionary. """
+
     with open(name + '.pkl', 'rb') as f:
         return pickle.load(f)
 
 
 def ensure_dir(f):
-
     """ Checks if specified path exists, and creates it if not. """
 
     d = os.path.dirname(f)
@@ -68,13 +108,12 @@ def ensure_dir(f):
 
 
 def get_coords(nSNe):
-
     """ Generates random galactic coordinates for SN """
 
     # Right ascension
     ra = np.random.uniform(0, 360, nSNe).tolist()
 
-    # Declination
+    # Declination (within SkyMapper bounds)
     dec = np.random.uniform(-90, 10, nSNe).tolist()
 
     coords = [ra, dec]
@@ -83,22 +122,21 @@ def get_coords(nSNe):
 
 
 def mu(z):
-
     """ Distance modulus formula used to obtain x0. """
 
     d_L = LIGHT * (z + 0.5 * (1 - Q0) * z ** 2) / H0
 
-    return 5*np.log10(d_L) + 25
+    return (5*np.log10(d_L) + 25)
 
 
 def get_skynoise(filter, seeing):
-
-    """ Calculates skynoise (background contribution to flux measurement
+    """ Calculates static skynoise (background contribution to flux measurement
         error), assuming seeing-dominated gaussian psf with perfect psf
         photometry.
         sigma_psf = std. deviation of psf (pixels)
         sigma_pixel = background noise in single pixel (in counts)
     """
+
     if filter == 'smg':
         if seeing == 'good':
             sigma_psf = 1.57
@@ -127,218 +165,336 @@ def get_skynoise(filter, seeing):
         sigma_psf = 1.96
         sigma_pixel = 6.23
 
-
     return 4*math.pi*sigma_psf*sigma_pixel
+
+
+# GENERATING SIMULATION SET ---------------------------------------------------
+
+
+def simulate_sn_set(folder, nSNe=0):
+
+    """ Generates full set of supernovae and observation parameters for all
+    telescopes and filters, to be used by simulate_lc"""
+
+    ensure_dir(folder)
+
+    params = []
+    observations = []
+
+    # Supernova parameters ----------------------------------------------
+
+    # z = redshift
+    if nSNe == 0:
+        z = list(sncosmo.zdist(zmin, zmax, time=(tmax - tmin), area=AREA))
+        nSNe = len(z)
+        print 'Obtained %s' % nSNe + ' redshifts from sncosmo distribution. \n'
+    else:
+        z = np.random.uniform(zmin, zmax, size=nSNe)
+        print 'Obtained %s' % nSNe + ' redshifts from uniform distribution. \n'
+
+    # t0 = time at lightcurve peak (mjd).
+    t0 = np.random.uniform(tmin, tmax, nSNe)
+
+    # c = colour
+    c = 0.3 * np.random.randn(nSNe)
+
+    # x1 = stretch
+    x1 = 3 * np.random.randn(nSNe)
+
+    # x0 = amplitude (I think...)
+    for i in range(nSNe):
+        x0 = 10 ** ((29.69 - mu(z[i])) / 2.5)
+        p = {'z': z[i], 't0': t0[i], 'x0': x0, 'x1': x1[i], 'c': c[i]}
+        params.append(p)
+
+    coords = get_coords(nSNe)
+
+    # Observing parameters ----------------------------------------------
+
+    t_det_sm = []
+    t_det_k = []
+
+    t_obs_sm = []
+    t_obs_k = []
+
+    time_sm = []
+    time_k = []
+
+    n_obs_sm = []
+    n_obs_k = []
+
+    zp_gri = []
+    zp_griv = []
+    zp_k = []
+
+    sn_gri = []
+    sn_griv = []
+    sn_k = []
+
+    for t in range(nSNe):
+
+        # SKYMAPPER --------------------------
+        # Time of init detection (mjd)
+        td_sm = np.random.randint(-15, -2)
+        t_det_sm.append(td_sm)
+
+        # Total observing period (days)
+        to_sm = np.random.randint(25, 65)
+        t_obs_sm.append(to_sm)
+
+        # Observation times
+        t_sm = (params[t].get('t0')
+                + np.arange(td_sm, td_sm + to_sm, cad_sm)).tolist()
+        n_obs_sm.append(len(t_sm))
+        time_sm.append(t_sm)
+
+        # Zero points
+        # For standard filter set (g, r, i) - used in 'bad seeing'
+        zp_g_bad = (np.random.normal(26.82, 0.79, len(t_sm)))
+        zp_i_bad = (np.random.normal(25.21, 0.36, len(t_sm)))
+        zp_r_bad = (np.random.normal(26.71, 0.76, len(t_sm)))
+        zp_gri = [zp_g_bad, zp_i_bad, zp_r_bad]
+
+        # For extended filter set (g, r, i, v) - used in 'good seeing'
+        zp_g_good = (np.random.normal(26.87, 0.68, len(t_sm)))
+        zp_i_good = (np.random.normal(25.85, 0.81, len(t_sm)))
+        zp_r_good = (np.random.normal(26.63, 0.67, len(t_sm)))
+        zp_v_good = (np.random.normal(24.91, 0.70, len(t_sm)))
+        zp_griv = [zp_g_good, zp_i_good, zp_r_good, zp_v_good]
+
+        # Skynoise
+        # For standard filter set (g, r, i) - used in 'bad seeing'
+        sn_g_bad = [get_skynoise('smg', 'bad')] * len(t_sm)
+        sn_i_bad = [get_skynoise('smi', 'bad')] * len(t_sm)
+        sn_r_bad = [get_skynoise('smr', 'bad')] * len(t_sm)
+        sn_gri = [sn_g_bad, sn_i_bad, sn_r_bad]
+
+        # For extended filter set (g, r, i, v) - used in 'good seeing'
+        sn_g_good = [get_skynoise('smg', 'good')] * len(t_sm)
+        sn_i_good = [get_skynoise('smi', 'good')] * len(t_sm)
+        sn_r_good = [get_skynoise('smr', 'good')] * len(t_sm)
+        sn_v_good = [get_skynoise('smv', 'good')] * len(t_sm)
+        sn_griv = [sn_g_good, sn_i_good, sn_r_good, sn_v_good]
+
+
+        # KEPLER----------------------------------
+        # Time of init detection (mjd)
+        td_k = np.random.randint(-15, -2)
+        t_det_k.append(td_k)
+
+        # Total observing period (days)
+        to_k = np.random.randint(80, 85)
+        t_obs_k.append(to_k)
+
+        # Observation times
+        t_k = (params[t].get('t0')
+               + np.arange(td_k, td_k + to_k, cad_k)).tolist()
+        n_obs_k.append(len(t_k))
+        time_k.append(t_k)
+
+        # Zero points
+        zp_k = [25.47] * len(t_k)
+
+        # Skynoise
+        sn_k = [0.] * len(t_k)
+
+        # OUTPUTS -------------------
+        # Possibly inefficient way of going about this...
+        # List of observing properties for each SN, to return
+        obs_util = [t_det_sm, t_det_k,
+                    t_obs_sm, t_obs_k,
+                    time_sm, time_k,
+                    n_obs_sm, n_obs_k,
+                    zp_gri, zp_griv, zp_k,
+                    sn_gri, sn_griv, sn_k]
+        observations.append(obs_util)
+
+    # Save as dictionary ----------------------------------------------
+    dict_out = {'Parameters': params, 'Coordinates': coords,
+                'Observations': observations, 'nSNe': nSNe}
+    save_obj(dict_out, folder + 'sn_dict')
+    print 'Properties of simulation saved in %ssn_dict.pkl' % folder
+    return
 
 
 # OBTAINING LC ----------------------------------------------------------------
 
 
-def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
-                tmin=57754, tmax=58118, zmin=0.001, zmax=0.1,
-                properties='', follow_up=False
-               ):
-
+def simulate_lc(parent_folder, child_folder='TestFiles/',
+                scope='sm', follow_up=False
+                ):
     """ Generate SN parameters and simulate 'observed' light curve
-        Defaults:  nSNe = 0 (number of SN)
-                   cadence = 4 (days between observations)
-                   kpass = False (if True, include kepler bandpass)
+        Defaults:  scope = 'sm' - which telescope to use in simulations.
+                            Accepted values are 'sm', 'kst' or 'both'.
                    folder = 'Testfiles/' (path to store outputs)
-                   tmin = 57754 (01/01/2017 in mjd)
-                   tmax = 58118 (31/12/2017 in mjd)
-                   zmin = 0.001 (min redshift detectable by SkyMapper)
-                   zmax = 0.100 (max redshift detectable by SkyMapper)
-                   properties = '' (path and name of dictionary of SN
-                     parameters to use.  If blank, generates new params)
                    follow_up = False (if true, use 'good seeing'
                     observing properties
     """
 
-    # Maintenance
+    # Maintenance.
+    child_folder = parent_folder + child_folder
     filters.register_filters()
-    ensure_dir(folder)
+    ensure_dir(child_folder)
+    lcs = []
+    time_sm = []
+    time_k = []
+    n_obs_sm = []
+    n_obs_k = []
+    zp_gri = []
+    zp_griv = []
+    zp_k = []
+    sn_gri = []
+    sn_griv = []
+    sn_k = []
 
-    # Select filters.
-    if kpass:
-        if follow_up:
-            bands = ['smg', 'smr', 'smi', 'smv', 'kst']
-        else:
-            bands = ['smg', 'smr', 'smi', 'kst']
-    else:
+    # Setting bandpasses
+    if scope == 'sm':
         if follow_up:
             bands = ['smg', 'smr', 'smi', 'smv']
         else:
             bands = ['smg', 'smr', 'smi']
-
-
-    lcs = []
-    obs_out = []
-    time = []
-    n_obs = []
-    zp_all = []
-    gain = []
-    skynoise = []
-
-    # Load dictionary of SN properties
-    if properties:
-        sn_dict = load_obj(properties)
-        params = sn_dict['Parameters']
-        coords = sn_dict['Coordinates']
-        obs_in = sn_dict['Observations']
-
-        for n in range(nSNe):
-            zp_hold = []
-            sn_hold = []
-            time.append(obs_in[n][0])
-            n_obs.append(obs_in[n][1])
-            zp_hold.append(obs_in[n][2])
-            sn_hold.append(obs_in[n][4])
-            gain = obs_in[n][3]
-            s = set(obs_in[n][5])
-
-            if follow_up:
-                if 'smv' not in s:
-                    zp_v = (np.random.normal(24.91, 0.70, n_obs[n]))
-                    zp_hold.append(zp_v)
-
-                    noise = [get_skynoise('smv', 'good')]*n_obs[n]
-                    sn_hold.append(noise)
-
-            if kpass:
-                if 'kst' not in s:
-                    # Add kst zps to end
-                    zp_k = [25.47]*n_obs[n]
-                    zp_hold.append(zp_k)
-
-                    noise = [0]*n_obs[n]
-                    sn_hold.append(noise)
-
-            #flattening
-            zp_hold = [item for sublist in zp_hold for item in sublist]
-            sn_hold = [item for sublist in sn_hold for item in
-                          sublist]
-
-            zp_all.append(zp_hold)
-            skynoise.append(sn_hold)
-
-    # Generate SN properties
     else:
-        # Set coordinates
-        coords = get_coords(nSNe)
-
-        # SN parameters
-        params = []
-        # Obtain redshifts
-        if nSNe == 0:
-            z = list(sncosmo.zdist(zmin, zmax,
-                                  time=(tmax - tmin), area=AREA)
-                                  )
-            nSNe = len(z)
-            print 'Obtained %s' %nSNe \
-                  + ' redshifts from sncosmo distribution. \n'
-        else:
-            z = np.random.uniform(zmin, zmax, size=nSNe)
-            print 'Obtained %s' %nSNe \
-                  + ' redshifts from uniform distribution. \n'
-
-        # Time at lightcurve peak (mjd).
-        t0 = np.random.uniform(tmin, tmax, nSNe)
-        c = 0.3*np.random.randn(nSNe)   # Colour
-        x1 = 3*np.random.randn(nSNe)    # Stretch
-
-        for i in range(nSNe):
-            x0 = 10**((29.69 - mu(z[i]))/2.5)   # Amplitude (?)
-            p = {'z': z[i], 't0': t0[i], 'x0': x0, 'x1': x1[i], 'c': c[i]}
-            params.append(p)
-
-        # Observations
-        # ZP - distribuitons taken from SkYMapper obs paramteres
-        for t in range(nSNe):
-            tdet = np.random.randint(-15, -2)  # Time of init detection (mjd).
-            tobs = np.random.randint(25, 65)  # Total observing period (days).
-            tt = (params[t].get('t0')
-                  + np.arange(tdet, tdet + tobs, cadence)).tolist()
-            n_obs.append(len(tt))
-            time.append(tt)
-            gain = 1.0
-
+        if scope == 'kst':
+            bands = ['kst']
+        elif scope == 'both':
             if follow_up:
-                zp_g = (np.random.normal(26.87, 0.68, len(tt)))
-                zp_i = (np.random.normal(25.85, 0.81, len(tt)))
-                zp_r = (np.random.normal(26.63, 0.67, len(tt)))
-                zp_v = (np.random.normal(24.91, 0.70, len(tt)))
-                zp_hold = [zp_g, zp_r, zp_i, zp_v]
-
-                sn_g = [get_skynoise('smg', 'good')] * len(tt)
-                sn_i = [get_skynoise('smi', 'good')] * len(tt)
-                sn_r = [get_skynoise('smr', 'good')] * len(tt)
-                sn_v = [get_skynoise('smv', 'good')] * len(tt)
-                sn_hold = [sn_g, sn_r, sn_i, sn_v]
+                bands = ['smg', 'smr', 'smi', 'smv', 'kst']
             else:
-                zp_g = (np.random.normal(26.82, 0.79, len(tt)))
-                zp_i = (np.random.normal(25.21, 0.36, len(tt)))
-                zp_r = (np.random.normal(26.71, 0.76, len(tt)))
-                zp_hold = [zp_g, zp_r, zp_i]
+                bands = ['smg', 'smr', 'smi', 'kst']
+        else:
+            print 'Hey buddy, that\'s not a real telescope.  Please enter ' \
+                  'scope = \'sm\' for SkyMapper, \'kst\' for Kepler, ' \
+                  'or \'both\' for both.  Thanks.'
 
-                sn_g = [get_skynoise('smg', 'bad')] * len(tt)
-                sn_i = [get_skynoise('smi', 'bad')] * len(tt)
-                sn_r = [get_skynoise('smr', 'bad')] * len(tt)
-                sn_hold = [sn_g, sn_r, sn_i]
+    # Load properties of simulation set
+    sn_dict = load_obj(parent_folder+'sn_dict')
+    params = sn_dict['Parameters']
+    obs_in = sn_dict['Observations']
+    nSNe = sn_dict['nSNe']
 
-            zp_k = [25.47]*len(tt)
+    for n in range(nSNe):
+        time_sm.append(obs_in[n][4])
+        time_k.append(obs_in[n][5])
+        n_obs_sm.append(obs_in[n][6])
+        n_obs_k.append(obs_in[n][7])
+        zp_gri.append(obs_in[n][8])
+        zp_griv.append(obs_in[n][9])
+        zp_k.append(obs_in[n][10])
+        sn_gri.append(obs_in[n][11])
+        sn_griv.append(obs_in[n][12])
+        sn_k.append(obs_in[n][13])
 
-            # order is important
-            if kpass:
-                zp_hold.append(zp_k)
-                sn_hold.append([0.]*len(tt))
-            zp_hold = [item for sublist in zp_hold for item in sublist]
-            zp_all.append(zp_hold)
-            sn_hold = [item for sublist in sn_hold for item in sublist]
-            skynoise.append(sn_hold)
+    # RUNNING SIMULATION --------------------------------------
 
-    true_file = folder + 'true_parameters.txt'
+    true_file = child_folder + 'true_parameters.txt'
     tf = open(true_file, 'w')
 
     for t in range(nSNe):
+
+        # time of observations for all filters (mjd)
         o_t = []
         observing_bands = []
 
-        # Adds 12s offset time between observations in different filters
-        for x in range(len(bands)):
-            j = np.array(time[t]) + 0.00013888888*x
-            o_t.append(j.tolist())
-            a = n_obs[t]*[bands[x]]
-            observing_bands.extend(a)
+        if scope == 'sm':
+
+            # Adds 12s offset time between observations in different sm filters
+            # (for slewing)
+            for x in range(len(bands)):
+                j = np.array(time_sm[t]) + 0.00013888888*x
+                o_t.append(j.tolist())
+                a = n_obs_sm[t][0]*[bands[x]]
+                observing_bands.extend(a)
+            n_points = n_obs_sm[t][0] * len(bands)
+
+            # Sets zp
+            if follow_up:
+                zp = zp_griv[t]
+            else:
+                zp = zp_gri[t]
+
+            # Sets skynoise
+            if follow_up:
+                skynoise = sn_griv[t]
+            else:
+                skynoise = zp_gri[t]
+
+        elif scope == 'kst':
+
+            o_t.append(time_k[t])
+            k_hold = n_obs_k[t][0] * ['kst']
+            observing_bands.extend(k_hold)
+            n_points = n_obs_k[t][0]
+
+            # Sets zp
+            zp = [zp_k[t]]
+
+            # Sets skynoise
+            skynoise = [sn_k[t]]
+
+        else:
+
+            # Adds 12s offset time between observations in different sm filters
+            # (for slewing)
+            for x in range(len(bands)-1):
+                j = np.array(time_sm[t]) + 0.00013888888*x
+                o_t.append(j.tolist())
+                a = n_obs_sm[t][0]*[bands[x]]
+                observing_bands.extend(a)
+
+            # Adds kepler observation times to set
+            o_t.append(time_k[t])
+            k_hold = n_obs_k[t][0]*['kst']
+            observing_bands.extend(k_hold)
+            n_points = (n_obs_sm[t][0] * (len(bands) - 1)) + n_obs_k[t][0]
+
+            # Sets zp
+            if follow_up:
+                zp = zp_griv[t]
+            else:
+                zp = zp_gri[t]
+            zp.append(zp_k[t])
+
+            # Sets skynoise
+            if follow_up:
+                skynoise = sn_griv[t]
+            else:
+                skynoise = sn_gri[t]
+            skynoise.append(sn_k[t])
+
+
+        # Flattening lists of lists
         observing_time = [item for sublist in o_t for item in sublist]
+        observing_time = [item for sublist in observing_time for item in sublist]
+        skynoise = [item for sublist in skynoise for item in sublist]
+        zp = [item for sublist in zp for item in sublist]
 
-        n_points = n_obs[t]*len(bands)
+        print len(observing_bands)
+        print len(observing_time)
+        print observing_time
+        print zp
+        print skynoise
+        print len(zp)
+        print len(skynoise)
+        print n_points
 
-        # List of observing properties for each SN, to return
-        obs_util = [time[t], n_obs[t], zp_all[t], gain, skynoise[t], bands]
         observing_dictionary = {'band': observing_bands,
                                 'time': observing_time,
-                                'zp': zp_all[t],
+                                'zp': zp,
                                 'zpsys': n_points*['ab'],
-                                'gain': n_points*[gain],
-                                'skynoise': skynoise[t]
+                                'gain': n_points*[1.0],
+                                'skynoise': skynoise
                                 }
-
-        obs_out.append(obs_util)
         obs = Table(observing_dictionary)
 
         lc = sncosmo.realize_lcs(obs, model, [params[t]])
         lcs.append(lc[0])
 
-        name = folder + 'observed_lc_%s.txt'%(t + 1)
+        name = child_folder + 'observed_lc_%s.txt' % (t + 1)
 
         # Write observations.
         sncosmo.write_lc(lc[0], name)
 
-        if kpass:
-            print 'Simulated observations for supernova %s saved in %s;\
-                   Kepler filter included'%((t + 1), name)
-        else:
-            print 'Simulated observations for supernova %s saved in %s'\
+        print 'Simulated observations for supernova %s saved in %s'\
                    %((t + 1), name)
 
         # Write true parameters in text file.
@@ -354,10 +510,6 @@ def simulate_lc(nSNe=0, cadence=4, kpass=False, folder='TestFiles/',
         print 'True parameters for supernova %s saved in %s \n'\
                %((t + 1), true_file)
     tf.close
-    dict_out = {'Parameters': params, 'Coordinates': coords,
-                 'Observations': obs_out}
-    save_obj(dict_out, folder+'sn_dict')
-    print 'Properties of simulation saved in %ssn_dict.pkl'%folder
 
     return lcs
 
@@ -437,11 +589,14 @@ def fit_util_lc(data, index, folder, coords_in):
     model.set(mwebv=ebv)
 
     # Fitting SALT2 model using MCMC.
-    result, fitted_model = fit(data, model,
+    """result, fitted_model = fit(data, model,
                                # Parameters of model to vary.
                                ['z', 't0', 'x0', 'x1', 'c'],
                                bounds={'z': (0.001, 0.1)}, minsnr=3.0
-                               )
+                               )"""
+    result, fitted_model = sncosmo.fit_lc(data, model,
+            ['z', 't0', 'x0', 'x1', 'c'],  # parameters of model to vary
+            bounds={'z': (0.001, 0.1)})
 
     fitted_params = dict([(result.param_names[0], result.parameters[0]),
                           (result.param_names[1], result.parameters[1]),
@@ -461,120 +616,3 @@ def fit_util_lc(data, index, folder, coords_in):
     print 'Fitted light curve plotted in ' + plotname
 
     return fitted_params
-
-
-def get_diff(folders, parent):
-
-    """ runs get_diff_util multiple times and returns table comparing results.
-        Saves table in text file.
-    """
-    x = []
-    name = 'residual_analysis.txt'
-
-    for i in range(len(folders)):
-        x.append(get_diff_util(folders[i]))
-
-    print 'Residuals Analysis:'
-    print tabulate([[folders[0], x[0][0], x[0][1], x[0][2], x[0][3], x[0][4]],
-                    [folders[1], x[1][0], x[1][1], x[1][2], x[1][3], x[1][4]],
-                    [folders[2], x[2][0], x[2][1], x[2][2], x[2][3], x[2][4]],
-                    [folders[3], x[3][0], x[3][1], x[3][2], x[3][3], x[3][4]]],
-                    headers=['Files', 'c', 't0', 'x0', 'x1', 'z'])
-
-    print 'Saving results as %s in %s'%(name, parent)
-    res_file = parent + name
-    ff = open(res_file, 'w')
-    ff.write(tabulate([[folders[0], x[0][0], x[0][1], x[0][2], x[0][3], x[0][4]],
-                    [folders[1], x[1][0], x[1][1], x[1][2], x[1][3], x[1][4]],
-                    [folders[2], x[2][0], x[2][1], x[2][2], x[2][3], x[2][4]],
-                    [folders[3], x[3][0], x[3][1], x[3][2], x[3][3], x[3][4]]],
-                    headers=['Files', 'c', 't0', 'x0', 'x1', 'z']))
-    ff.close()
-
-    return x
-
-
-def get_diff_util(folder):
-
-    """ Reads text files of fitted and true parameters, and calculates
-        diffences for each SN parameter """
-
-    fp = folder + 'fitted_parameters.txt'
-    tp = folder + 'true_parameters.txt'
-
-    fitted_c = []
-    fitted_t0 = []
-    fitted_x0 = []
-    fitted_x1 = []
-    fitted_z = []
-
-    with open(fp, 'rb') as f:
-
-        reader = csv.reader(f, delimiter=' ')
-
-        for row in reader:
-
-            fitted_c.append(float(row[1].strip('c:')))
-            fitted_t0.append(float(row[2].strip('t0:')))
-            fitted_x0.append(float(row[3].strip('x0:')))
-            fitted_x1.append(float(row[4].strip('x1:')))
-            fitted_z.append(float(row[5].strip('z:')))
-
-    #fitted_params = [fitted_c, fitted_t0, fitted_x0, fitted_x1, fitted_z]
-
-    true_c = []
-    true_t0 = []
-    true_x0 = []
-    true_x1 = []
-    true_z = []
-
-    with open(tp, 'rb') as file:
-
-        reader = csv.reader(file, delimiter=' ')
-
-        for row in reader:
-
-            true_c.append(float(row[1].strip('c:')))
-            true_t0.append(float(row[2].strip('t0:')))
-            true_x0.append(float(row[3].strip('x0:')))
-            true_x1.append(float(row[4].strip('x1:')))
-            true_z.append(float(row[5].strip('z:')))
-
-    #true_params = [true_c, true_t0, true_x0, true_x1, true_z]
-
-    c_diff = 0
-    t0_diff = 0
-    x0_diff = 0
-    x1_diff = 0
-    z_diff = 0
-
-    plotname = folder + 'differences.png'
-    f, axarr = plt.subplots(5, sharex=True)
-    axarr[0].plot(true_c, 'o')
-    axarr[0].plot(fitted_c, 'v')
-    axarr[0].set_ylabel('c')
-    axarr[0].set_title('Fitted VS True Parameters')
-    axarr[1].plot(true_t0, 'o')
-    axarr[1].plot(fitted_t0, 'v')
-    axarr[1].set_ylabel('t0')
-    axarr[2].plot(true_x0, 'o')
-    axarr[2].plot(fitted_x0, 'v')
-    axarr[2].set_ylabel('x0')
-    axarr[3].plot(true_x1, 'o')
-    axarr[3].plot(fitted_x1, 'v')
-    axarr[3].set_ylabel('x1')
-    axarr[4].plot(true_z, 'o')
-    axarr[4].plot(fitted_z, 'v')
-    axarr[4].set_ylabel('z')
-    f.savefig(plotname)
-
-    for i in range(len(true_c)):
-        c_diff = c_diff + abs(true_c[i] - fitted_c[i])
-        t0_diff = t0_diff + abs(true_t0[i] - fitted_t0[i])
-        x0_diff = x0_diff + abs(true_x0[i] - fitted_x0[i])
-        x1_diff = x1_diff + abs(true_x1[i] - fitted_x1[i])
-        z_diff = z_diff + abs(true_z[i] - fitted_z[i])
-
-    res = [c_diff, t0_diff, x0_diff, x1_diff, z_diff]
-
-    return res
