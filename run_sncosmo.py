@@ -1,17 +1,13 @@
 """
-
 GT 05/12/16
-
 Aims to:
 a) generate SALT2 observation light curves for SN with randomly generated
    parameters and observations.
 b) take an observation light curve and fit a SALT2 model to it.
-
 Requires installation of:
 - SNCosmo:  https://sncosmo.readthedocs.io/en/v1.4.x/index.html
 - Emcee:
 - sfdmap:
-
 """
 
 
@@ -39,8 +35,8 @@ import filters
 cad_sm = 4.
 
 
-# Kepler observing cadence (30 minutes, in days)
-cad_k = 1. / 48.
+# Kepler observing cadence (6 hours, in days)
+cad_k = 1. / 4.
 
 
 # SkyMapper field of view (square degrees)
@@ -223,14 +219,6 @@ def simulate_sn_set(folder, nSNe=0):
     n_obs_sm = []
     n_obs_k = []
 
-    zp_gri = []
-    zp_griv = []
-    zp_k = []
-
-    sn_gri = []
-    sn_griv = []
-    sn_k = []
-
     for t in range(nSNe):
 
         # SKYMAPPER --------------------------
@@ -279,7 +267,7 @@ def simulate_sn_set(folder, nSNe=0):
 
         # KEPLER----------------------------------
         # Time of init detection (mjd)
-        td_k = np.random.randint(-15, -2)
+        td_k = np.random.randint(-17, -15)
         t_det_k.append(td_k)
 
         # Total observing period (days)
@@ -301,10 +289,10 @@ def simulate_sn_set(folder, nSNe=0):
         # OUTPUTS -------------------
         # Possibly inefficient way of going about this...
         # List of observing properties for each SN, to return
-        obs_util = [t_det_sm, t_det_k,
-                    t_obs_sm, t_obs_k,
-                    time_sm, time_k,
-                    n_obs_sm, n_obs_k,
+        obs_util = [t_det_sm[t], t_det_k[t],
+                    t_obs_sm[t], t_obs_k[t],
+                    time_sm[t], time_k[t],
+                    n_obs_sm[t], n_obs_k[t],
                     zp_gri, zp_griv, zp_k,
                     sn_gri, sn_griv, sn_k]
         observations.append(obs_util)
@@ -335,6 +323,7 @@ def simulate_lc(parent_folder, child_folder='TestFiles/',
     child_folder = parent_folder + child_folder
     filters.register_filters()
     ensure_dir(child_folder)
+    bands = []
     lcs = []
     time_sm = []
     time_k = []
@@ -401,10 +390,10 @@ def simulate_lc(parent_folder, child_folder='TestFiles/',
             # (for slewing)
             for x in range(len(bands)):
                 j = np.array(time_sm[t]) + 0.00013888888*x
-                o_t.append(j.tolist())
-                a = n_obs_sm[t][0]*[bands[x]]
+                o_t.extend(j.tolist())
+                a = n_obs_sm[t]*[bands[x]]
                 observing_bands.extend(a)
-            n_points = n_obs_sm[t][0] * len(bands)
+            n_points = n_obs_sm[t] * len(bands)
 
             # Sets zp
             if follow_up:
@@ -419,11 +408,10 @@ def simulate_lc(parent_folder, child_folder='TestFiles/',
                 skynoise = zp_gri[t]
 
         elif scope == 'kst':
-
-            o_t.append(time_k[t])
-            k_hold = n_obs_k[t][0] * ['kst']
+            o_t.extend(time_k[t])
+            k_hold = n_obs_k[t] * ['kst']
             observing_bands.extend(k_hold)
-            n_points = n_obs_k[t][0]
+            n_points = n_obs_k[t]
 
             # Sets zp
             zp = [zp_k[t]]
@@ -437,15 +425,15 @@ def simulate_lc(parent_folder, child_folder='TestFiles/',
             # (for slewing)
             for x in range(len(bands)-1):
                 j = np.array(time_sm[t]) + 0.00013888888*x
-                o_t.append(j.tolist())
-                a = n_obs_sm[t][0]*[bands[x]]
+                o_t.extend(j.tolist())
+                a = n_obs_sm[t]*[bands[x]]
                 observing_bands.extend(a)
 
             # Adds kepler observation times to set
-            o_t.append(time_k[t])
-            k_hold = n_obs_k[t][0]*['kst']
+            o_t.extend(time_k[t])
+            k_hold = n_obs_k[t]*['kst']
             observing_bands.extend(k_hold)
-            n_points = (n_obs_sm[t][0] * (len(bands) - 1)) + n_obs_k[t][0]
+            n_points = (n_obs_sm[t] * (len(bands) - 1)) + n_obs_k[t]
 
             # Sets zp
             if follow_up:
@@ -461,21 +449,19 @@ def simulate_lc(parent_folder, child_folder='TestFiles/',
                 skynoise = sn_gri[t]
             skynoise.append(sn_k[t])
 
-
         # Flattening lists of lists
-        observing_time = [item for sublist in o_t for item in sublist]
-        observing_time = [item for sublist in observing_time for item in sublist]
+        observing_time = o_t
+        #observing_time = [item for sublist in o_t for item in sublist]
+        #observing_time = [item for sublist in observing_time for item in
+        #                  sublist]
         skynoise = [item for sublist in skynoise for item in sublist]
         zp = [item for sublist in zp for item in sublist]
 
-        print len(observing_bands)
-        print len(observing_time)
-        print observing_time
-        print zp
-        print skynoise
-        print len(zp)
-        print len(skynoise)
-        print n_points
+        #print len(observing_bands)
+        #print len(observing_time)
+        #print len(zp)
+        #print n_points
+        #print len(skynoise)
 
         observing_dictionary = {'band': observing_bands,
                                 'time': observing_time,
@@ -518,7 +504,9 @@ def get_lc(filelist):
 
     """ Reads lightcurves from files
         File names should be in a list
-        Returns list of light curve tables """
+        Returns list of light curve tables
+        Note - for this method you'll need to generate SN coords using
+        simulate_sn_set() before using fit_snlc()"""
 
     filters.register_filters()
 
@@ -535,23 +523,22 @@ def get_lc(filelist):
 # FITTING ---------------------------------------------------------------------
 
 
-def fit_snlc(lightcurve, folder='TestFiles/', properties=''):
+def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/'):
 
     """ Utility function for fitting lightcurves to
     observations of multiple SN """
 
+    folder = parent_folder + child_folder
     ensure_dir(folder)
 
     # Create text file for storing 'fitted' parameters for each SN.
     fitted_file = folder + 'fitted_parameters.txt'
     ff = open(fitted_file, 'w')
     nSNe = len(lightcurve)
+
     # Get coordinates
-    if properties:
-        sn_dict = load_obj(properties)
-        coords_in = sn_dict['Coordinates']
-    else:
-        coords_in = get_coords(nSNe)
+    sn_dict = load_obj(parent_folder+'sn_dict')
+    coords_in = sn_dict['Coordinates']
 
     for i in range(nSNe):
         coords_out = [el[i] for el in coords_in]
@@ -589,14 +576,11 @@ def fit_util_lc(data, index, folder, coords_in):
     model.set(mwebv=ebv)
 
     # Fitting SALT2 model using MCMC.
-    """result, fitted_model = fit(data, model,
+    result, fitted_model = fit(data, model,
                                # Parameters of model to vary.
                                ['z', 't0', 'x0', 'x1', 'c'],
                                bounds={'z': (0.001, 0.1)}, minsnr=3.0
-                               )"""
-    result, fitted_model = sncosmo.fit_lc(data, model,
-            ['z', 't0', 'x0', 'x1', 'c'],  # parameters of model to vary
-            bounds={'z': (0.001, 0.1)})
+                               )
 
     fitted_params = dict([(result.param_names[0], result.parameters[0]),
                           (result.param_names[1], result.parameters[1]),
