@@ -1,10 +1,8 @@
 """
 GT 05/12/2016
-
-Wrapper script to run sncosmo light curve simulations from 
+Wrapper script to run sncosmo light curve simulations from
 run_sncosmo.py.  Can be edited to suit user.
-
-> Generates observed light curve from SN parameters (random or 
+> Generates observed light curve from SN parameters (random or
   specified);
 > OR imports observed light curve;
 > THEN fits SALT2 model to observations.
@@ -14,12 +12,13 @@ import run_sncosmo as run
 
 
 # Number of SN to simulate (if using sncosmo distribution, use 0).
-nSNe = 1
+nSNe = 30
+
 
 
 # Path to store info about whole observing set, used by each run.
 # ENSURE / is at end of path!
-parent_folder = 'Simulations/testing/flipping_methods/1/'
+parent_folder = 'Simulations/cad_sm_4d/cad_k_6h/30sn/'
 
 
 # Paths to store individual runs
@@ -27,9 +26,8 @@ parent_folder = 'Simulations/testing/flipping_methods/1/'
 child_folder_1 = 'sm_bad_seeing/'
 child_folder_2 = 'sm_good_seeing/'
 child_folder_3 = 'k_bad_seeing/'
-child_folder_4 = 'k_good_seeing/'
-child_folder_5 = 'both_bad_seeing/'
-child_folder_6 = 'both_good_seeing'
+child_folder_4 = 'both_bad_seeing/'
+child_folder_5 = 'both_good_seeing/'
 
 
 # Generates all info about SN and observing parameters, to be used by each
@@ -53,25 +51,32 @@ run3 = run.simulate_lc(parent_folder, child_folder=child_folder_3,
 
 print'attempting run 4:'
 run4 = run.simulate_lc(parent_folder, child_folder=child_folder_4,
-                       scope='kst', follow_up=True)
+                       scope='both', follow_up=False)
 
 print'attempting run 5:'
 run5 = run.simulate_lc(parent_folder, child_folder=child_folder_5,
-                       scope='both', follow_up=False)
-
-print'attempting run 6:'
-run6 = run.simulate_lc(parent_folder, child_folder=child_folder_6,
                        scope='both', follow_up=True)
 
 # Import list of lightcurves from files (if not simulating above).
+# Note - parent folder and simulate_sn_set() is still needed for fit_snlc()
 
 #run3 = run.get_lc(['best_zps/noK/observed_lc_1.txt',
 #                     'best_zps/noK/observed_lc_2.txt'
 #                  ])
 
-                        
+
 # Fit SALT2 models to list of observed light curves.
-
 print'attempting fit 1:'
-#run.fit_snlc(run1, folder=dir1, properties=dir1+'sn_dict')
+run.fit_snlc(run1, parent_folder, child_folder=child_folder_1)
 
+print'attempting fit 2:'
+run.fit_snlc(run2, parent_folder, child_folder=child_folder_2)
+
+print'attempting fit 3:'
+run.fit_snlc(run3, parent_folder, child_folder=child_folder_3)
+
+print'attempting fit 4:'
+run.fit_snlc(run4, parent_folder, child_folder=child_folder_4)
+
+print'attempting fit 5:'
+run.fit_snlc(run5, parent_folder, child_folder=child_folder_5)
