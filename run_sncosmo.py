@@ -1,13 +1,25 @@
 """
-GT 05/12/16
+GT 02/04/16
+
 Aims to:
-a) generate SALT2 observation light curves for SN with randomly generated
-   parameters and observations.
-b) take an observation light curve and fit a SALT2 model to it.
+a) Generate a random set of supernovae.
+b) Simulate SkyMapper (good and bad seeing) and Kepler Space Telescope
+    observations of these supernovae, using SNCosmo.
+c) Fit SALT2 models to various combinations of these observations,
+    to attempt to recover supernovae parameters.
+d) Analyse how each 'combination' of observations performed.
+
 Requires installation of:
 - SNCosmo:  https://sncosmo.readthedocs.io/en/v1.4.x/index.html
 - Emcee:
 - sfdmap:
+"""
+
+
+""" Important edit notes:
+    - KST cadence currently set to 1 day!
+    - SM observable candidate range: RA(0-360), Dec(-90,10)
+    - get_skynoise is pretty garbage.
 """
 
 
@@ -18,6 +30,9 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 from astropy.table import Table
+from matplotlib.backends.backend_pdf import PdfPages
+
+from astropy.table import Table, vstack
 from matplotlib.backends.backend_pdf import PdfPages
 
 import sfdmap
@@ -34,45 +49,39 @@ import filters
 # SkyMapper observing cadence (days)
 cad_sm = 4.
 
-
 # Kepler observing cadence (6 hours, in days)
-cad_k = 1. / 4.
-
+cad_k = 1. #/ 4.
 
 # SkyMapper field of view (square degrees)
 AREA = 5.7
-
 
 # Skymapper min and max observable redshift
 zmin = 0.001
 zmax = 0.1
 
-
 # Possible observing period: all of 2017 (mjd)
 tmin = 57754
 tmax = 58118
 
-
 Q0 = 0.2
-
 
 # Speed of light (km/s)
 LIGHT = 2.997*10**5
-
 
 # (km/s/Mpc)
 H0 = 70.00
 
 
 # DUSTMAPS --------------------------------------------------------------------
-dust = sncosmo.CCM89Dust()
 
+dust = sncosmo.CCM89Dust()
 
 # Change path to location of dustmaps
 dustmap = sfdmap.SFDMap("/home/georgie/sfddata-master")
 
 
 # SALT2 MODEL TEMPLATE --------------------------------------------------------
+
 model = sncosmo.Model(source='salt2',
                       effects=[dust, dust],
                       effect_names=['host', 'mw'],
@@ -82,7 +91,7 @@ model = sncosmo.Model(source='salt2',
 # UTILITY FNS -----------------------------------------------------------------
 
 def save_obj(obj, name):
-    """ Utility function for saving dictionary. """
+    """ Utility function for saving dictionary 'obj' as 'name'. """
 
     with open(name + '.pkl', 'wb') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
@@ -164,8 +173,7 @@ def get_skynoise(filter, seeing):
     return 4*math.pi*sigma_psf*sigma_pixel
 
 
-# GENERATING SIMULATION SET ---------------------------------------------------
-
+# A: GENERATING SET OF SUPERNOVAE ---------------------------------------------
 
 def simulate_sn_set(folder, nSNe=0):
 
@@ -305,15 +313,14 @@ def simulate_sn_set(folder, nSNe=0):
     return
 
 
-# OBTAINING LC ----------------------------------------------------------------
-
+# B: SIMULATING OBSERVATIONS --------------------------------------------------
 
 def simulate_lc(parent_folder, child_folder='TestFiles/',
                 scope='sm', follow_up=False
                 ):
-    """ Generate SN parameters and simulate 'observed' light curve
+    """ Simulate 'observed' light curves.
         Defaults:  scope = 'sm' - which telescope to use in simulations.
-                            Accepted values are 'sm', 'kst' or 'both'.
+                            Accepted values are 'sm' or 'kst'
                    folder = 'Testfiles/' (path to store outputs)
                    follow_up = False (if true, use 'good seeing'
                     observing properties
@@ -345,15 +352,9 @@ def simulate_lc(parent_folder, child_folder='TestFiles/',
     else:
         if scope == 'kst':
             bands = ['kst']
-        elif scope == 'both':
-            if follow_up:
-                bands = ['smg', 'smr', 'smi', 'smv', 'kst']
-            else:
-                bands = ['smg', 'smr', 'smi', 'kst']
         else:
             print 'Hey buddy, that\'s not a real telescope.  Please enter ' \
-                  'scope = \'sm\' for SkyMapper, \'kst\' for Kepler, ' \
-                  'or \'both\' for both.  Thanks.'
+                  'scope = \'sm\' for SkyMapper, or \'kst\' for Kepler. '
 
     # Load properties of simulation set
     sn_dict = load_obj(parent_folder+'sn_dict')
@@ -407,7 +408,7 @@ def simulate_lc(parent_folder, child_folder='TestFiles/',
             else:
                 skynoise = zp_gri[t]
 
-        elif scope == 'kst':
+        else:
             o_t.extend(time_k[t])
             k_hold = n_obs_k[t] * ['kst']
             observing_bands.extend(k_hold)
@@ -418,36 +419,6 @@ def simulate_lc(parent_folder, child_folder='TestFiles/',
 
             # Sets skynoise
             skynoise = [sn_k[t]]
-
-        else:
-
-            # Adds 12s offset time between observations in different sm filters
-            # (for slewing)
-            for x in range(len(bands)-1):
-                j = np.array(time_sm[t]) + 0.00013888888*x
-                o_t.extend(j.tolist())
-                a = n_obs_sm[t]*[bands[x]]
-                observing_bands.extend(a)
-
-            # Adds kepler observation times to set
-            o_t.extend(time_k[t])
-            k_hold = n_obs_k[t]*['kst']
-            observing_bands.extend(k_hold)
-            n_points = (n_obs_sm[t] * (len(bands) - 1)) + n_obs_k[t]
-
-            # Sets zp
-            if follow_up:
-                zp = zp_griv[t]
-            else:
-                zp = zp_gri[t]
-            zp.append(zp_k[t])
-
-            # Sets skynoise
-            if follow_up:
-                skynoise = sn_griv[t]
-            else:
-                skynoise = sn_gri[t]
-            skynoise.append(sn_k[t])
 
         # Flattening lists of lists
         observing_time = o_t
@@ -490,7 +461,6 @@ def simulate_lc(parent_folder, child_folder='TestFiles/',
 
     return lcs
 
-
 def get_lc(filelist):
 
     """ Reads lightcurves from files
@@ -510,8 +480,34 @@ def get_lc(filelist):
 
     return lcs
 
+def combine_scopes(parent_folder, f_1, f_2, f_3, nSNe):
 
-# FITTING ---------------------------------------------------------------------
+    """ Method to merge multiple observations into one light curve file.
+        - Opens two 'source' folders (f_1 and f_2) and iteratively combines
+        the light curve files 'observed_lc_i' into a new light curve file,
+        which is saved in f3.
+    """
+    lc_list = []
+
+    for t in range(nSNe):
+
+        lc_1 = sncosmo.read_lc(parent_folder + f_1 + 'observed_lc_%s.txt'%(
+            t+1))
+        lc_2 = sncosmo.read_lc(parent_folder + f_2 + 'observed_lc_%s.txt'%(
+            t+1))
+
+        lc_3 = vstack([lc_1, lc_2])
+
+        ensure_dir(parent_folder + f_3)
+
+        sncosmo.write_lc(lc_3, parent_folder + f_3 + 'observed_lc_%s.txt'%(
+            t+1))
+
+        lc_list.append(lc_3)
+
+    return lc_list
+
+# C: FITTING ------------------------------------------------------------------
 
 
 def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/'):
@@ -537,7 +533,6 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/'):
     for i in range(nSNe):
         coords_out = [el[i] for el in coords_in]
         z = params[i]['z']
-        print z
         p = fit_util_lc(lightcurve[i], i + 1, folder, coords_out, z)
 
         # Write fitted parameters in text file.
