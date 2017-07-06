@@ -12,11 +12,11 @@ run_sncosmo.py.  Can be edited to suit user.
 import run_sncosmo as run
 
 # Number of SN to simulate (if using sncosmo distribution, use 0).
-nSNe = 150
+nSNe = 50
 
 # Path to store info about whole observing set, used by each run.
 # ENSURE / is at end of path!
-parent_folder = 'Run_1/150_SN/'
+parent_folder = '0627/Kepler_12hour/SM_3day/50SN/'
 
 
 # Paths to store individual runs
@@ -39,21 +39,21 @@ print'attempting run 1:'
 run1 = run.simulate_lc(parent_folder, child_folder=child_folder_1,
                        scope='sm', follow_up=False)
 
-print'attempting run 2:'
+# print'attempting run 2:'
 run2 = run.simulate_lc(parent_folder, child_folder=child_folder_2,
                        scope='sm', follow_up=True)
 
-#print'attempting run 3:'
-#run3 = run.simulate_lc(parent_folder, child_folder=child_folder_3,
-#                       scope='kst', follow_up=False)
+# print'attempting run 3:'
+run3 = run.simulate_lc(parent_folder, child_folder=child_folder_3,
+                       scope='kst', follow_up=False)
 
-#print 'attempting bad seeing combination'
-#run4 = run.combine_scopes(parent_folder, child_folder_1, child_folder_3,
-#                          child_folder_4, nSNe)
+# print 'attempting bad seeing combination'
+run4 = run.combine_scopes(parent_folder, child_folder_1, child_folder_3,
+                          child_folder_4, nSNe)
 
-#print 'attempting good seeing combination'
-#run5 = run.combine_scopes(parent_folder, child_folder_2, child_folder_3,
-#                          child_folder_5, nSNe)
+# print 'attempting good seeing combination'
+run5 = run.combine_scopes(parent_folder, child_folder_2, child_folder_3,
+                          child_folder_5, nSNe)
 
 
 # Import list of lightcurves from files (if not simulating above).
@@ -68,14 +68,14 @@ run2 = run.simulate_lc(parent_folder, child_folder=child_folder_2,
 print'attempting fit 1:'
 run.fit_snlc(run1, parent_folder, child_folder=child_folder_1)
 
-print'attempting fit 2:'
+# print'attempting fit 2:'
 run.fit_snlc(run2, parent_folder, child_folder=child_folder_2)
 
-#print'attempting fit 3:'
-#run.fit_snlc(run3, parent_folder, child_folder=child_folder_3)
+# print'attempting fit 3:'
+run.fit_snlc(run3, parent_folder, child_folder=child_folder_3)
 
-#print'attempting fit 4:'
-#run.fit_snlc(run4, parent_folder, child_folder=child_folder_4)
+# print'attempting fit 4:'
+run.fit_snlc(run4, parent_folder, child_folder=child_folder_4)
 
-#print'attempting fit 5:'
-#run.fit_snlc(run5, parent_folder, child_folder=child_folder_5)
+# print'attempting fit 5:'
+run.fit_snlc(run5, parent_folder, child_folder=child_folder_5)
