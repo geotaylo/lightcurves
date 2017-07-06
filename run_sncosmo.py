@@ -24,13 +24,9 @@ Requires installation of:
 
 
 import os
-import csv
 import pickle
 import math
 import numpy as np
-import matplotlib.pyplot as plt
-from astropy.table import Table
-from matplotlib.backends.backend_pdf import PdfPages
 
 from astropy.table import Table, vstack
 from matplotlib.backends.backend_pdf import PdfPages
@@ -38,7 +34,6 @@ from matplotlib.backends.backend_pdf import PdfPages
 import sfdmap
 import sncosmo
 from sncosmo import mcmc_lc as fit
-#from tabulate import tabulate
 
 # filters.py should be in working directory
 import filters
@@ -47,10 +42,12 @@ import filters
 # CONSTANTS -------------------------------------------------------------------
 
 # SkyMapper observing cadence (days)
-cad_sm = 4.
+# NOTE: for SM cadence to vary randomly between
+# 1 and 4 days, assign cad_sm = 0.
+cad_sm = 3.
 
-# Kepler observing cadence (6 hours, in days)
-cad_k = 1. #/ 4.
+# Kepler observing cadence (12 hours, in days)
+cad_k = 1./2.
 
 # SkyMapper field of view (square degrees)
 AREA = 5.7
@@ -63,7 +60,7 @@ zmax = 0.1
 tmin = 57754
 tmax = 58118
 
-Q0 = 0.2
+Q0 = -0.5
 
 # Speed of light (km/s)
 LIGHT = 2.997*10**5
@@ -227,6 +224,12 @@ def simulate_sn_set(folder, nSNe=0):
     n_obs_sm = []
     n_obs_k = []
 
+    global cad_sm
+    if cad_sm == 0.:
+        cad_sm = np.random.randint(1, high=5, size=nSNe)
+    else:
+        cad_sm = [cad_sm]*nSNe
+
     for t in range(nSNe):
 
         # SKYMAPPER --------------------------
@@ -240,7 +243,7 @@ def simulate_sn_set(folder, nSNe=0):
 
         # Observation times
         t_sm = (params[t].get('t0')
-                + np.arange(td_sm, td_sm + to_sm, cad_sm)).tolist()
+                + np.arange(td_sm, td_sm + to_sm, cad_sm[t])).tolist()
         n_obs_sm.append(len(t_sm))
         time_sm.append(t_sm)
 
@@ -292,7 +295,7 @@ def simulate_sn_set(folder, nSNe=0):
         zp_k = [25.47] * len(t_k)
 
         # Skynoise
-        sn_k = [0.] * len(t_k)
+        sn_k = [0.1] * len(t_k)
 
         # OUTPUTS -------------------
         # Possibly inefficient way of going about this...
@@ -558,9 +561,13 @@ def fit_util_lc(data, index, folder, coords_in, z):
     """ Fits SALT2 light curve to a supernova observation
         Plots model, data and residuals """
 
-    print 'Fitting light curve for supernova %s' %index
+    global cad_sm
+    global cad_k
 
-    plotname = folder + 'fitted_lc_%s.pdf' %index
+    print 'Fitting light curve for supernova %s' % index
+
+    plotname = folder + 'fitted_lc_%s_smcad_%s_days.pdf' \
+                        % (index, cad_sm[index-1])
 
     ebv = dustmap.ebv(coords_in[0], coords_in[1])
 
