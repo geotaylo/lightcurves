@@ -27,6 +27,7 @@ import os
 import pickle
 import math
 import numpy as np
+import random
 
 from astropy.table import Table, vstack
 from matplotlib.backends.backend_pdf import PdfPages
@@ -44,10 +45,14 @@ import filters
 # SkyMapper observing cadence (days)
 # NOTE: for SM cadence to vary randomly between
 # 1 and 4 days, assign cad_sm = 0.
-cad_sm = 3.
+cad_sm = 5.
 
 # Kepler observing cadence (12 hours, in days)
-cad_k = 1./2.
+cad_k = 1.#/2.
+
+# Number of observations in SkyMapper V filter (good seeing, centered around
+# lightcurve peak)
+v_obs = 2
 
 # SkyMapper field of view (square degrees)
 AREA = 5.7
@@ -224,11 +229,8 @@ def simulate_sn_set(folder, nSNe=0):
     n_obs_sm = []
     n_obs_k = []
 
+    # Randomise SkyMapper cadence
     global cad_sm
-    if cad_sm == 0.:
-        cad_sm = np.random.randint(1, high=5, size=nSNe)
-    else:
-        cad_sm = [cad_sm]*nSNe
 
     for t in range(nSNe):
 
@@ -242,8 +244,17 @@ def simulate_sn_set(folder, nSNe=0):
         t_obs_sm.append(to_sm)
 
         # Observation times
-        t_sm = (params[t].get('t0')
-                + np.arange(td_sm, td_sm + to_sm, cad_sm[t])).tolist()
+        if cad_sm == 0.:
+            time_hold = params[t].get('t0') + td_sm
+            t_sm = []
+            while time_hold <= (params[t].get('t0') + td_sm + to_sm):
+                t_sm.append(time_hold)
+                time_hold = time_hold + random.randint(1, 4)
+        else:
+            cad_sm_hold = [cad_sm] * nSNe
+            t_sm = (params[t].get('t0')
+                    + np.arange(td_sm, td_sm + to_sm, cad_sm_hold[t])).tolist()
+
         n_obs_sm.append(len(t_sm))
         time_sm.append(t_sm)
 
@@ -258,7 +269,7 @@ def simulate_sn_set(folder, nSNe=0):
         zp_g_good = (np.random.normal(26.87, 0.68, len(t_sm)))
         zp_i_good = (np.random.normal(25.85, 0.81, len(t_sm)))
         zp_r_good = (np.random.normal(26.63, 0.67, len(t_sm)))
-        zp_v_good = (np.random.normal(24.91, 0.70, len(t_sm)))
+        zp_v_good = (np.random.normal(24.91, 0.70, v_obs))
         zp_griv = [zp_g_good, zp_i_good, zp_r_good, zp_v_good]
 
         # Skynoise
@@ -272,7 +283,7 @@ def simulate_sn_set(folder, nSNe=0):
         sn_g_good = [get_skynoise('smg', 'good')] * len(t_sm)
         sn_i_good = [get_skynoise('smi', 'good')] * len(t_sm)
         sn_r_good = [get_skynoise('smr', 'good')] * len(t_sm)
-        sn_v_good = [get_skynoise('smv', 'good')] * len(t_sm)
+        sn_v_good = [get_skynoise('smv', 'good')] * v_obs
         sn_griv = [sn_g_good, sn_i_good, sn_r_good, sn_v_good]
 
 
@@ -329,6 +340,7 @@ def simulate_lc(parent_folder, child_folder='TestFiles/',
                     observing properties
     """
 
+    ### HEY GRAWG IS IT EASIER IF THESE ARE GLOBAL??
     # Maintenance.
     child_folder = parent_folder + child_folder
     filters.register_filters()
@@ -387,18 +399,36 @@ def simulate_lc(parent_folder, child_folder='TestFiles/',
         # time of observations for all filters (mjd)
         o_t = []
         observing_bands = []
+        n_points = 0
 
         if scope == 'sm':
 
             # Adds 12s offset time between observations in different sm filters
             # (for slewing)
-            for x in range(len(bands)):
-                j = np.array(time_sm[t]) + 0.00013888888*x
+            for x in range(3):
+                j = np.array(time_sm[t]) + 0.00013888888 * x
                 o_t.extend(j.tolist())
-                a = n_obs_sm[t]*[bands[x]]
+                a = n_obs_sm[t] * [bands[x]]
                 observing_bands.extend(a)
-            n_points = n_obs_sm[t] * len(bands)
+                n_points += n_obs_sm[t]
 
+            # Handle v filter observations
+            if follow_up:
+                peak = params[t].get('t0')
+
+                # Find observation time closest to peak
+                peak_hold = min(time_sm[t], key=lambda x: abs( - peak))
+                peak_index = time_sm[t].index(peak_hold)
+
+                # Select v_obs number of obervations after peak and add slew
+                v_times = time_sm[t][peak_index:peak_index+v_obs]
+                j = np.array(v_times) + 0.00013888888 * 3
+                o_t.extend(j.tolist())
+                a = v_obs * [bands[3]]
+                observing_bands.extend(a)
+                n_points += v_obs
+
+                    # CHECK THESE BAD BOIS
             # Sets zp
             if follow_up:
                 zp = zp_griv[t]
@@ -561,13 +591,9 @@ def fit_util_lc(data, index, folder, coords_in, z):
     """ Fits SALT2 light curve to a supernova observation
         Plots model, data and residuals """
 
-    global cad_sm
-    global cad_k
-
     print 'Fitting light curve for supernova %s' % index
 
-    plotname = folder + 'fitted_lc_%s_smcad_%s_days.pdf' \
-                        % (index, cad_sm[index-1])
+    plotname = folder + 'fitted_lc_%s.pdf' % index
 
     ebv = dustmap.ebv(coords_in[0], coords_in[1])
 
