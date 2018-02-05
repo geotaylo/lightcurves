@@ -37,6 +37,7 @@ import sfdmap
 import sncosmo
 from sncosmo import mcmc_lc as mcmc_fit
 from sncosmo import fit_lc as chi_fit
+from sncosmo import nest_lc as nest_fit
 
 # filters.py should be in working directory
 import filters
@@ -67,8 +68,8 @@ zmax = 0.1
 tmin = 57754
 tmax = 58118
 
-# Fitting method (1 = chisquared, 2 = mcmc)
-fit_method = 2
+# Fitting method (1 = chisquared, 2 = mcmc, 3 = nest)
+fit_method = 1
 
 Q0 = -0.5
 
@@ -607,22 +608,33 @@ def fit_util_lc(data, index, folder, coords_in, z, t0):
 
     # Hold Z and t0
     model.set(z=z)
-    model.set(t0=t0)
+    #model.set(t0=t0)
+
 
     # Fitting SALT2 model using chisquared (1) or mcmc (2)
     if fit_method == 1:
         result, fitted_model = chi_fit(data, model,
-                                   ['x0', 'x1', 'c'],
-                                   minsnr=3.0)
+                                       ['t0', 'x0', 'x1', 'c'],
+                                       bounds={'t0': (t0 - 0.25, t0 + 0.25)},
+                                       minsnr=3.0)
 
     elif fit_method == 2:
         result, fitted_model = mcmc_fit(data, model,
-                               # Parameters of model to vary.
-                               #['t0', 'x0', 'x1', 'c'],
-                               ['x0', 'x1', 'c'],
-                               minsnr=3.0
-                               )
+                                        # Parameters of model to vary.
+                                        ['t0', 'x0', 'x1', 'c'],
+                                        #['x0', 'x1', 'c'],
+                                        bounds={'t0': (t0 - 0.25, t0 + 0.25)},
+                                        minsnr=3.0
+                                        )
 
+    # This needs bounds handled
+    elif fit_method == 3:
+        result, fitted_model = nest_fit(data, model,
+                                        # Parameters of model to vary.
+                                        # ['t0', 'x0', 'x1', 'c'],
+                                        ['x0', 'x1', 'c'],
+                                        minsnr=3.0
+                                        )
     else:
         print "You made a terrible mistake."
 
