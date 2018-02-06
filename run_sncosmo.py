@@ -22,6 +22,7 @@ Requires installation of:
     - get_skynoise is pretty garbage.
 """
 
+# REMEMBER t0 is currently held!!!
 
 import os
 import pickle
@@ -34,7 +35,9 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 import sfdmap
 import sncosmo
-from sncosmo import mcmc_lc as fit
+from sncosmo import mcmc_lc as mcmc_fit
+from sncosmo import fit_lc as chi_fit
+from sncosmo import nest_lc as nest_fit
 
 # filters.py should be in working directory
 import filters
@@ -64,6 +67,9 @@ zmax = 0.1
 # Possible observing period: all of 2017 (mjd)
 tmin = 57754
 tmax = 58118
+
+# Fitting method (1 = chisquared, 2 = mcmc, 3 = nest)
+fit_method = 1
 
 Q0 = -0.5
 
@@ -566,7 +572,8 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/'):
     for i in range(nSNe):
         coords_out = [el[i] for el in coords_in]
         z = params[i]['z']
-        p = fit_util_lc(lightcurve[i], i + 1, folder, coords_out, z)
+        t0 = params[i]['t0']
+        p = fit_util_lc(lightcurve[i], i + 1, folder, coords_out, z, t0)
 
         # Write fitted parameters in text file.
         ff.write('SN%s: ' %(i+1))
@@ -586,7 +593,7 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/'):
     return
 
 
-def fit_util_lc(data, index, folder, coords_in, z):
+def fit_util_lc(data, index, folder, coords_in, z, t0):
 
     """ Fits SALT2 light curve to a supernova observation
         Plots model, data and residuals """
@@ -599,15 +606,39 @@ def fit_util_lc(data, index, folder, coords_in, z):
 
     model.set(mwebv=ebv)
 
-    # Hold Z
+    # Hold Z and t0
     model.set(z=z)
+    #model.set(t0=t0)
 
-    # Fitting SALT2 model using MCMC.
-    result, fitted_model = fit(data, model,
-                               # Parameters of model to vary.
-                               ['t0', 'x0', 'x1', 'c'],
-                               minsnr=3.0
-                               )
+
+    # Fitting SALT2 model using chisquared (1) or mcmc (2)
+    if fit_method == 1:
+        result, fitted_model = chi_fit(data, model,
+                                       ['t0', 'x0', 'x1', 'c'],
+                                       bounds={'t0': (t0 - 0.25, t0 + 0.25)},
+                                       minsnr=3.0)
+
+    elif fit_method == 2:
+        result, fitted_model = mcmc_fit(data, model,
+                                        # Parameters of model to vary.
+                                        ['t0', 'x0', 'x1', 'c'],
+                                        #['x0', 'x1', 'c'],
+                                        bounds={'t0': (t0 - 0.25, t0 + 0.25)},
+                                        minsnr=3.0
+                                        )
+
+    # This needs bounds handled
+    elif fit_method == 3:
+        result, fitted_model = nest_fit(data, model,
+                                        # Parameters of model to vary.
+                                        # ['t0', 'x0', 'x1', 'c'],
+                                        ['x0', 'x1', 'c'],
+                                        minsnr=3.0
+                                        )
+    else:
+        print "You made a terrible mistake."
+
+    # error handling to go here
 
     fitted_params = dict([(result.param_names[0], result.parameters[0]),
                           (result.param_names[1], result.parameters[1]),
