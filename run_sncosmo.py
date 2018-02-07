@@ -69,7 +69,7 @@ tmin = 57754
 tmax = 58118
 
 # Fitting method (1 = chisquared, 2 = mcmc, 3 = nest)
-fit_method = 1
+fit_method = 2
 
 Q0 = -0.5
 
@@ -549,7 +549,7 @@ def combine_scopes(parent_folder, f_1, f_2, f_3, nSNe):
 # C: FITTING ------------------------------------------------------------------
 
 
-def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/'):
+def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/', t0=0):
 
     """ Utility function for fitting lightcurves to
     observations of multiple SN """
@@ -569,11 +569,18 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/'):
     # Get redshift
     params = sn_dict['Parameters']
 
+    # Hold t0 outputs (only used for Kepler)
+    if t0 == 0:
+        t0 = [0]*nSNe
+
+    explosion_time = []
+
     for i in range(nSNe):
         coords_out = [el[i] for el in coords_in]
         z = params[i]['z']
-        t0 = params[i]['t0']
-        p = fit_util_lc(lightcurve[i], i + 1, folder, coords_out, z, t0)
+        p, fitted_t0 = fit_util_lc(lightcurve[i], i + 1, folder, coords_out, z, t0[i])
+
+        explosion_time.append(fitted_t0)
 
         # Write fitted parameters in text file.
         ff.write('SN%s: ' %(i+1))
@@ -590,7 +597,7 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/'):
 
     print 'Process complete.'
 
-    return
+    return explosion_time
 
 
 def fit_util_lc(data, index, folder, coords_in, z, t0):
@@ -606,39 +613,66 @@ def fit_util_lc(data, index, folder, coords_in, z, t0):
 
     model.set(mwebv=ebv)
 
-    # Hold Z and t0
+    # Hold Z
     model.set(z=z)
-    #model.set(t0=t0)
 
 
-    # Fitting SALT2 model using chisquared (1) or mcmc (2)
-    if fit_method == 1:
-        result, fitted_model = chi_fit(data, model,
-                                       ['t0', 'x0', 'x1', 'c'],
-                                       bounds={'t0': (t0 - 0.25, t0 + 0.25)},
-                                       minsnr=3.0)
+    if t0 == 0:
+        # Fitting SALT2 model using chisquared (1) or mcmc (2)
+        # and fitting for t0.
 
-    elif fit_method == 2:
-        result, fitted_model = mcmc_fit(data, model,
-                                        # Parameters of model to vary.
-                                        ['t0', 'x0', 'x1', 'c'],
-                                        #['x0', 'x1', 'c'],
-                                        bounds={'t0': (t0 - 0.25, t0 + 0.25)},
-                                        minsnr=3.0
-                                        )
+        if fit_method == 1:
+            result, fitted_model = chi_fit(data, model,
+                                           ['t0', 'x0', 'x1', 'c'],
+                                           minsnr=3.0, verbose=True
+                                           )
 
-    # This needs bounds handled
-    elif fit_method == 3:
-        result, fitted_model = nest_fit(data, model,
-                                        # Parameters of model to vary.
-                                        # ['t0', 'x0', 'x1', 'c'],
-                                        ['x0', 'x1', 'c'],
-                                        minsnr=3.0
-                                        )
+        elif fit_method == 2:
+            result, fitted_model = mcmc_fit(data, model,
+                                            # Parameters of model to vary.
+                                            ['t0', 'x0', 'x1', 'c'],
+                                            minsnr=3.0
+                                            )
+
+        # # This needs bounds handled
+        # elif fit_method == 3:
+        #     result, fitted_model = nest_fit(data, model,
+        #                                     # Parameters of model to vary.
+        #                                     # ['t0', 'x0', 'x1', 'c'],
+        #                                     ['x0', 'x1', 'c'],
+        #                                     minsnr=3.0, verbose=True
+        #                                     )
+
     else:
-        print "You made a terrible mistake."
+        # Fitting SALT2 model using chisquared (1) or mcmc (2)
+        # and setting t0 manually (should be fitted t0 from Kepler)
 
-    # error handling to go here
+        model.set(t0=t0)
+
+
+        if fit_method == 1:
+            result, fitted_model = chi_fit(data, model,
+                                           ['x0', 'x1', 'c'],
+                                           minsnr=3.0, verbose=True
+                                           )
+
+        elif fit_method == 2:
+            result, fitted_model = mcmc_fit(data, model,
+                                            # Parameters of model to vary.
+                                            ['x0', 'x1', 'c'],
+                                            minsnr=3.0
+                                            )
+
+        # # This needs bounds handled
+        # elif fit_method == 3:
+        #     result, fitted_model = nest_fit(data, model,
+        #                                     # Parameters of model to vary.
+        #                                     # ['t0', 'x0', 'x1', 'c'],
+        #                                     ['x0', 'x1', 'c'],
+        #                                     minsnr=3.0, verbose=True
+        #                                     )
+
+    fitted_t0 = result.parameters[1]
 
     fitted_params = dict([(result.param_names[0], result.parameters[0]),
                           (result.param_names[1], result.parameters[1]),
@@ -657,4 +691,4 @@ def fit_util_lc(data, index, folder, coords_in, z, t0):
 
     print 'Fitted light curve plotted in ' + plotname
 
-    return fitted_params
+    return fitted_params, fitted_t0
