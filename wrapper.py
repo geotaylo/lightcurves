@@ -17,7 +17,7 @@ nSNe = 100
 # Path to store info about whole observing set, used by each run.
 # ENSURE / is at end of path!
 parent_folder = 'Honours_data_sets/4_080218/1_stat_sample \
-                '/Kepler_6hours/SM_5day/vObs_2/100SN/'
+                '/Kepler_6hours/SM_5day/vObs_2/100_SN/'
 
 
 # Paths to store individual runs
