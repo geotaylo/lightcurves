@@ -618,21 +618,21 @@ def fit_util_lc(data, index, folder, coords_in, z, t0):
 
 
     if t0 == 0:
-        # Fitting SALT2 model using chisquared (1) or mcmc (2)
+        # Fitting SALT2 model using chisquared and MCMC)
         # and fitting for t0.
 
-        if fit_method == 1:
-            result, fitted_model = chi_fit(data, model,
+        result_1, fitted_model_1 = chi_fit(data, model,
                                            ['t0', 'x0', 'x1', 'c'],
-                                           minsnr=3.0, verbose=True
+                                           minsnr=3.0,
+                                           verbose=True
                                            )
 
-        elif fit_method == 2:
-            result, fitted_model = mcmc_fit(data, model,
+        result, fitted_model = mcmc_fit(data, fitted_model_1,
                                             # Parameters of model to vary.
                                             ['t0', 'x0', 'x1', 'c'],
                                             minsnr=3.0,
-                                            nburn=400
+                                            guess_t0=False,
+                                            guess_amplitude=False,
                                             )
 
         # # This needs bounds handled
@@ -645,26 +645,25 @@ def fit_util_lc(data, index, folder, coords_in, z, t0):
         #                                     )
 
     else:
-        # Fitting SALT2 model using chisquared (1) or mcmc (2)
+        # Fitting SALT2 model using chisquared and MCMC
         # and setting t0 manually (should be fitted t0 from Kepler)
 
         model.set(t0=t0)
 
-
-        if fit_method == 1:
-            result, fitted_model = chi_fit(data, model,
-                                           ['t0', 'x0', 'x1', 'c'],
+        result_1, fitted_model_1 = chi_fit(data, model,
+                                           ['x0', 'x1', 'c'],
                                            minsnr=3.0,
                                            guess_t0=False,
+                                           guess_amplitude=False,
                                            verbose=True
                                            )
 
-        elif fit_method == 2:
-            result, fitted_model = mcmc_fit(data, model,
+        result, fitted_model = mcmc_fit(data, fitted_model_1,
                                             # Parameters of model to vary.
                                             ['t0', 'x0', 'x1', 'c'],
                                             minsnr=3.0,
-                                            guess_t0=False
+                                            guess_t0=False,
+                                            guess_amplitude=False,
                                             )
 
         # # This needs bounds handled
