@@ -624,7 +624,6 @@ def fit_util_lc(data, index, folder, coords_in, z, t0):
         result_1, fitted_model_1 = chi_fit(data, model,
                                            ['t0', 'x0', 'x1', 'c'],
                                            minsnr=3.0,
-                                           verbose=True
                                            )
 
         result, fitted_model = mcmc_fit(data, fitted_model_1,
@@ -655,7 +654,6 @@ def fit_util_lc(data, index, folder, coords_in, z, t0):
                                            minsnr=3.0,
                                            guess_t0=False,
                                            guess_amplitude=False,
-                                           verbose=True
                                            )
 
         result, fitted_model = mcmc_fit(data, fitted_model_1,
