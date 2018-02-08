@@ -50,8 +50,8 @@ import filters
 # 1 and 4 days, assign cad_sm = 0.
 cad_sm = 5.
 
-# Kepler observing cadence (12 hours, in days)
-cad_k = 1.#/2.
+# Kepler observing cadence (6 hours, in days)
+cad_k = 1./4.
 
 # Number of observations in SkyMapper V filter (good seeing, centered around
 # lightcurve peak)
@@ -631,7 +631,8 @@ def fit_util_lc(data, index, folder, coords_in, z, t0):
             result, fitted_model = mcmc_fit(data, model,
                                             # Parameters of model to vary.
                                             ['t0', 'x0', 'x1', 'c'],
-                                            minsnr=3.0
+                                            minsnr=3.0,
+                                            nburn=400
                                             )
 
         # # This needs bounds handled
@@ -652,15 +653,18 @@ def fit_util_lc(data, index, folder, coords_in, z, t0):
 
         if fit_method == 1:
             result, fitted_model = chi_fit(data, model,
-                                           ['x0', 'x1', 'c'],
-                                           minsnr=3.0, verbose=True
+                                           ['t0', 'x0', 'x1', 'c'],
+                                           minsnr=3.0,
+                                           guess_t0=False,
+                                           verbose=True
                                            )
 
         elif fit_method == 2:
             result, fitted_model = mcmc_fit(data, model,
                                             # Parameters of model to vary.
-                                            ['x0', 'x1', 'c'],
-                                            minsnr=3.0
+                                            ['t0', 'x0', 'x1', 'c'],
+                                            minsnr=3.0,
+                                            guess_t0=False
                                             )
 
         # # This needs bounds handled
