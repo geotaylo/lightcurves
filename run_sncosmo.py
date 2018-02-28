@@ -85,7 +85,7 @@ H0 = 70.00
 dust = sncosmo.CCM89Dust()
 
 # Change path to location of dustmaps
-dustmap = sfdmap.SFDMap("/home/gtaylor/sfddata-master")
+dustmap = sfdmap.SFDMap("/home/georgie/sfddata-master")
 
 
 # SALT2 MODEL TEMPLATE --------------------------------------------------------
@@ -579,28 +579,36 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/', t0=0):
 
     for i in range(nSNe):
         try:
-		coords_out = [el[i] for el in coords_in]
-		z = params[i]['z']
-		p, fitted_t0 = fit_util_lc(lightcurve[i], i + 1, folder, coords_out, z, t0[i])
+            coords_out = [el[i] for el in coords_in]
+            z = params[i]['z']
+            p, fitted_t0 = fit_util_lc(lightcurve[i], i + 1, folder, coords_out, z, t0[i])
+            print p
 
-		explosion_time.append(fitted_t0)
+            explosion_time.append(fitted_t0)
 
-		# Write fitted parameters in text file.
-		ff.write('SN%s: ' %(i+1))
+            # Write fitted parameters in text file.
+            ff.write('SN%s: ' %(i+1))
 
-		for key in sorted(p):
-		    ff.write('%s:%s ' % (key, p[key]))
+            for key in sorted(p):
+                ff.write('%s:%s ' % (key, p[key]))
 
-		ff.write('\n')
+            ff.write('\n')
 
-		print 'Fitted parameters for supernova %s saved in %s \n'\
-		    %((i + 1), fitted_file)
+            print 'Fitted parameters for supernova %s saved in %s \n'\
+		        %((i + 1), fitted_file)
 
-	except RuntimeError, e:  # working around NaN thrown with garbage emcee fitter.
-		print 'Error:',e
-		ef.write('SN%s: \n' %(i+1))
+        except RuntimeError, e:  # working around NaN thrown with garbage emcee fitter.
+            print 'Error:',e
 
-		pass
+            # List skipped SN in error file
+            ef.write('SN%s: \n' %(i+1))
+
+            # Add fitted parameters as 0 for all (to fix indexing issue when using fitted t0 values)
+            ff.write('c:0 t0:0 x0:0 x1:0 z:0 ')
+
+
+            pass
+
     ff.close()
     ef.close()
 
