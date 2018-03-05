@@ -85,7 +85,7 @@ H0 = 70.00
 dust = sncosmo.CCM89Dust()
 
 # Change path to location of dustmaps
-dustmap = sfdmap.SFDMap("/home/georgie/sfddata-master")
+dustmap = sfdmap.SFDMap("/home/gtaylor/sfddata-master")
 
 
 # SALT2 MODEL TEMPLATE --------------------------------------------------------
@@ -582,7 +582,6 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/', t0=0):
             coords_out = [el[i] for el in coords_in]
             z = params[i]['z']
             p, fitted_t0 = fit_util_lc(lightcurve[i], i + 1, folder, coords_out, z, t0[i])
-            print p
 
             explosion_time.append(fitted_t0)
 
@@ -605,6 +604,7 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/', t0=0):
 
             # Add fitted parameters as 0 for all (to fix indexing issue when using fitted t0 values)
             ff.write('c:0 t0:0 x0:0 x1:0 z:0 ')
+            explosion_time.append(0)
 
 
             pass
@@ -612,6 +612,7 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/', t0=0):
     ff.close()
     ef.close()
 
+    print explosion_time
     print 'Process complete.'
 
     return explosion_time
