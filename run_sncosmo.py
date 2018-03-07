@@ -42,6 +42,8 @@ from sncosmo import nest_lc as nest_fit
 # filters.py should be in working directory
 import filters
 
+from shutil import copyfile
+
 
 # CONSTANTS -------------------------------------------------------------------
 
@@ -528,6 +530,9 @@ def combine_scopes(parent_folder, f_1, f_2, f_3, nSNe):
     """
     lc_list = []
 
+    # Copy true_parameters file to new folder.
+    copyfile(f_1 + 'true_parameters.txt', f_3 + 'true_parameters.txt')
+
     for t in range(nSNe):
 
         lc_1 = sncosmo.read_lc(parent_folder + f_1 + 'observed_lc_%s.txt'%(
@@ -603,7 +608,7 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/', t0=0):
             ef.write('SN%s: \n' %(i+1))
 
             # Add fitted parameters as 0 for all (to fix indexing issue when using fitted t0 values)
-            ff.write('c:0 t0:0 x0:0 x1:0 z:0 ')
+            ff.write('SN%s: c:0 t0:0 x0:0 x1:0 z:0 \n' %(i+1))
             explosion_time.append(0)
 
 
