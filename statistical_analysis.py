@@ -4,7 +4,7 @@ from prettytable import PrettyTable
 import os
 import matplotlib.pyplot as plt
 import numpy as np
-
+import win32api
 
 def analyse(folder, set, fails=[], wipe_fails=False):
 
@@ -145,7 +145,10 @@ def abs_and_weight(list):
     weights = np.ones_like(abs_list) / float(len(list))
     return abs_list, weights
 
-def plot_diffs(smb_diffs, smg_diffs, kst_diffs, bothb_diffs, bothg_diffs):
+def plot_diffs(smb_diffs, smg_diffs, kst_diffs, bothb_diffs, bothg_diffs, folder):
+
+    if not os.path.isdir(folder):
+        os.makedirs(folder)
 
     abs_c_smb, weights_c_smb = abs_and_weight(smb_diffs[0])
     abs_c_smg, weights_c_smg = abs_and_weight(smg_diffs[0])
@@ -163,20 +166,162 @@ def plot_diffs(smb_diffs, smg_diffs, kst_diffs, bothb_diffs, bothg_diffs):
     plt.xlabel('Residual (true - fitted value of c)')
     plt.ylabel('Probability')
     plt.legend()
+    plt.savefig(folder + 'colour.png')
     plt.show()
 
+    abs_t0_smb, weights_t0_smb = abs_and_weight(smb_diffs[1])
+    abs_t0_smg, weights_t0_smg = abs_and_weight(smg_diffs[1])
+    abs_t0_kst, weights_t0_kst = abs_and_weight(kst_diffs[1])
+    abs_t0_bothb, weights_t0_bothb = abs_and_weight(bothb_diffs[1])
+    abs_t0_bothg, weights_t0_bothg = abs_and_weight(bothg_diffs[1])
 
-smb_fails, smb_diffs = analyse('Honours_data_sets/5_270218/1_stat_sample/Kepler_6hours/SM_5day/vObs_2/100SN_3/sm_bad_seeing/',
-                    'sm_bad_seeing')
-smg_fails, smg_diffs = analyse('Honours_data_sets/5_270218/1_stat_sample/Kepler_6hours/SM_5day/vObs_2/100SN_3/sm_good_seeing/',
-                    'sm_good_seeing')
-kst_fails, kst_diffs = analyse('Honours_data_sets/5_270218/1_stat_sample/Kepler_6hours/SM_5day/vObs_2/100SN_3/kst/', 'kst')
-bothb_fails, bothb_diffs = analyse('Honours_data_sets/5_270218/1_stat_sample/Kepler_6hours/SM_5day/vObs_2/100SN_3/both_bad_seeing/',
-                   'both_bad_seeing', fails=kst_fails)
-bothg_fails, bothg_diffs = analyse('Honours_data_sets/5_270218/1_stat_sample/Kepler_6hours/SM_5day/vObs_2/100SN_3/both_good_seeing/',
-                   'both_good_seeing', fails=kst_fails)
+    # Plot all telescopes on same graph
+    plt.hist(abs_t0_smb, bins=50, range=[0, 1], histtype='step', weights=weights_t0_smb, color='b', label='SM bad seeing')
+    plt.hist(abs_t0_smg, bins=50, range=[0, 1], histtype='step', weights=weights_t0_smg, color='r',
+             label='SM good seeing')
+    plt.hist(abs_t0_kst, bins=50, range=[0, 1], histtype='step', weights=weights_t0_kst, color='g', label='KST')
+    plt.hist(abs_t0_bothb, bins=50, range=[0, 1], histtype='step', weights=weights_t0_bothb, color='y',
+             label='Both bad seeing')
+    plt.hist(abs_t0_bothg, bins=50, range=[0, 1], histtype='step', weights=weights_t0_bothg, color='k',
+             label='Both good seeing')
+    plt.title('Explosion Time Residuals')
+    plt.xlabel('Residual (true - fitted value of t0)')
+    plt.ylabel('Probability')
+    plt.legend()
+    plt.savefig(folder + 't0.png')
+    plt.show()
 
-plot_diffs(smb_diffs, smg_diffs, kst_diffs, bothb_diffs, bothg_diffs)
+    abs_x0_smb, weights_x0_smb = abs_and_weight(smb_diffs[2])
+    abs_x0_smg, weights_x0_smg = abs_and_weight(smg_diffs[2])
+    abs_x0_kst, weights_x0_kst = abs_and_weight(kst_diffs[2])
+    abs_x0_bothb, weights_x0_bothb = abs_and_weight(bothb_diffs[2])
+    abs_x0_bothg, weights_x0_bothg = abs_and_weight(bothg_diffs[2])
+
+    # Plot all telescopes on same graph
+    plt.hist(abs_x0_smb, bins=50, range=[0, 1], histtype='step', weights=weights_x0_smb, color='b', label='SM bad seeing')
+    plt.hist(abs_x0_smg, bins=50, range=[0, 1], histtype='step', weights=weights_x0_smg, color='r',
+             label='SM good seeing')
+    plt.hist(abs_x0_kst, bins=50, range=[0, 1], histtype='step', weights=weights_x0_kst, color='g', label='KST')
+    plt.hist(abs_x0_bothb, bins=50, range=[0, 1], histtype='step', weights=weights_x0_bothb, color='y',
+             label='Both bad seeing')
+    plt.hist(abs_x0_bothg, bins=50, range=[0, 1], histtype='step', weights=weights_x0_bothg, color='k',
+             label='Both good seeing')
+    plt.title('x0 Residuals')
+    plt.xlabel('Residual (true - fitted value of x0)')
+    plt.ylabel('Probability')
+    plt.legend()
+    plt.savefig(folder + 'x0.png')
+    plt.show()
+
+    abs_x1_smb, weights_x1_smb = abs_and_weight(smb_diffs[3])
+    abs_x1_smg, weights_x1_smg = abs_and_weight(smg_diffs[3])
+    abs_x1_kst, weights_x1_kst = abs_and_weight(kst_diffs[3])
+    abs_x1_bothb, weights_x1_bothb = abs_and_weight(bothb_diffs[3])
+    abs_x1_bothg, weights_x1_bothg = abs_and_weight(bothg_diffs[3])
+
+    # Plot all telescopes on same graph
+    plt.hist(abs_x1_smb, bins=50, range=[0, 1], histtype='step', weights=weights_x1_smb, color='b', label='SM bad seeing')
+    plt.hist(abs_x1_smg, bins=50, range=[0, 1], histtype='step', weights=weights_x1_smg, color='r',
+             label='SM good seeing')
+    plt.hist(abs_x1_kst, bins=50, range=[0, 1], histtype='step', weights=weights_x1_kst, color='g', label='KST')
+    plt.hist(abs_x1_bothb, bins=50, range=[0, 1], histtype='step', weights=weights_x1_bothb, color='y',
+             label='Both bad seeing')
+    plt.hist(abs_x1_bothg, bins=50, range=[0, 1], histtype='step', weights=weights_x1_bothg, color='k',
+             label='Both good seeing')
+    plt.title('x1 Residuals')
+    plt.xlabel('Residual (true - fitted value of x1)')
+    plt.ylabel('Probability')
+    plt.legend()
+    plt.savefig(folder + 'x1.png')
+    plt.show()
+
+    return
+
+
+def plot_diffs_2(scopes, labels, colour, folder):
+
+    # folder = folder + 'full_'
+    if not os.path.isdir(folder):
+        os.makedirs(folder)
+
+    for i in range(0, len(scopes)):
+        abs_c, weights_c = abs_and_weight(scopes[i][0])
+        plt.hist(abs_c, bins=50, range=[0, 1], histtype='step', weights=weights_c, color=colour[i],
+                  label=labels[i])
+        # plt.hist(abs_c, bins=50, histtype='step', weights=weights_c, color=colour[i],
+        #          label=labels[i])
+
+    plt.title('Colour Residuals')
+    plt.xlabel('Residual (true - fitted value of c)')
+    plt.ylabel('Probability')
+    plt.legend()
+    plt.savefig(folder + 'colour.png')
+    plt.clf()
+    # plt.show()
+
+    for i in range(0, len(scopes)):
+        abs_t0, weights_t0 = abs_and_weight(scopes[i][1])
+        plt.hist(abs_t0, bins=50, range=[0, 1], histtype='step', weights=weights_t0, color=colour[i],
+                 label=labels[i])
+        # plt.hist(abs_t0, bins=50, histtype='step', weights=weights_t0, color=colour[i],
+        #          label=labels[i])
+
+    plt.title('Explosion Time Residuals')
+    plt.xlabel('Residual (true - fitted value of t0)')
+    plt.ylabel('Probability')
+    plt.legend()
+    plt.savefig(folder + 't0.png')
+    plt.clf()
+    # plt.show()
+
+    for i in range(0, len(scopes)):
+        abs_x0, weights_x0 = abs_and_weight(scopes[i][2])
+        plt.hist(abs_x0, bins=50, range=[0, 1], histtype='step', weights=weights_x0, color=colour[i],
+                 label=labels[i])
+        #plt.hist(abs_x0, bins=50, histtype='step', weights=weights_x0, color=colour[i],
+        #         label=labels[i])
+
+    plt.title('x0 Residuals')
+    plt.xlabel('Residual (true - fitted value of x0)')
+    plt.ylabel('Probability')
+    plt.legend()
+    plt.savefig(folder + 'x0.png')
+    plt.clf()
+    # plt.show()
+
+    for i in range(0, len(scopes)):
+        abs_x1, weights_x1 = abs_and_weight(scopes[i][3])
+        plt.hist(abs_x1, bins=50, range=[0, 1], histtype='step', weights=weights_x1, color=colour[i],
+                 label=labels[i])
+        #plt.hist(abs_x1, bins=50, histtype='step', weights=weights_x1, color=colour[i],
+        #          label=labels[i])
+
+    plt.title('x1 Residuals')
+    plt.xlabel('Residual (true - fitted value of x1)')
+    plt.ylabel('Probability')
+    plt.legend()
+    plt.savefig(folder + 'x1.png')
+    plt.clf()
+    # plt.show()
+
+    return
+
+
+
+# FULL SETS (errors not trimmed)
+#
+# smb_fails, smb_diffs = analyse('Honours_data_sets/5_270218/1_stat_sample/Kepler_6hours/SM_5day/vObs_2/100SN_3/sm_bad_seeing/',
+#                     'sm_bad_seeing')
+# smg_fails, smg_diffs = analyse('Honours_data_sets/5_270218/1_stat_sample/Kepler_6hours/SM_5day/vObs_2/100SN_3/sm_good_seeing/',
+#                     'sm_good_seeing')
+# kst_fails, kst_diffs = analyse('Honours_data_sets/5_270218/1_stat_sample/Kepler_6hours/SM_5day/vObs_2/100SN_3/kst/', 'kst')
+# bothb_fails, bothb_diffs = analyse('Honours_data_sets/5_270218/1_stat_sample/Kepler_6hours/SM_5day/vObs_2/100SN_3/both_bad_seeing/',
+#                    'both_bad_seeing', fails=kst_fails)
+# bothg_fails, bothg_diffs = analyse('Honours_data_sets/5_270218/1_stat_sample/Kepler_6hours/SM_5day/vObs_2/100SN_3/both_good_seeing/',
+#                    'both_good_seeing', fails=kst_fails)
+#
+# plot_diffs(smb_diffs, smg_diffs, kst_diffs, bothb_diffs, bothg_diffs,
+#            'Honours_data_sets/5_270218/1_stat_sample/Kepler_6hours/SM_5day/vObs_2/100SN_3/stats/full/')
 
 
 
@@ -192,4 +337,58 @@ bothb_fails2, bothb_diffs2 = analyse('Honours_data_sets/5_270218/1_stat_sample/K
                    'both_bad_seeing', fails=kst_fails2, wipe_fails=True)
 bothg_fails2, bothg_diffs2 = analyse('Honours_data_sets/5_270218/1_stat_sample/Kepler_6hours/SM_5day/vObs_2/100SN_3/both_good_seeing/',
                    'both_good_seeing', fails=kst_fails2, wipe_fails=True)
-plot_diffs(smb_diffs2, smg_diffs2, kst_diffs2, bothb_diffs2, bothg_diffs2)
+
+
+
+
+plot_diffs_2([smb_diffs2, smg_diffs2, kst_diffs2, bothb_diffs2, bothg_diffs2],
+             ['SM bad seeing', 'SM good seeing', 'KST', 'Both bad seeing', 'Both good seeing'],
+             ['b', 'r', 'g', 'y', 'k'],
+             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\all_")
+
+plot_diffs_2([smb_diffs2],
+             ['SM bad seeing'],
+             ['b'],
+             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\SM_b_")
+
+plot_diffs_2([smg_diffs2],
+             ['SM good seeing'],
+             ['r'],
+             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\SM_g_")
+
+plot_diffs_2([kst_diffs2],
+             ['KST'],
+             ['g'],
+             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\KST_")
+
+plot_diffs_2([bothb_diffs2],
+             ['Both bad seeing'],
+             ['y'],
+             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\Both_b_")
+
+plot_diffs_2([bothg_diffs2],
+             ['Both good seeing'],
+             ['k'],
+             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\Both_g_")
+
+plot_diffs_2([smb_diffs2, smg_diffs2],
+             ['SM bad seeing', 'SM good seeing'],
+             ['b', 'r'],
+             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\SM_g_SM_b_")
+
+plot_diffs_2([bothb_diffs2, bothg_diffs2],
+             ['Both bad seeing', 'Both good seeing'],
+             ['y', 'k'],
+             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\Both_g_Both_b_")
+
+plot_diffs_2([smg_diffs2, kst_diffs2, bothg_diffs2],
+             ['SM good seeing', 'KST', 'Both good seeing'],
+             ['r', 'g', 'k'],
+             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\SM_g_KST_Both_g_"
+            )
+
+plot_diffs_2([smb_diffs2, kst_diffs2, bothb_diffs2],
+             ['SM bad seeing', 'KST', 'Both bad seeing'],
+             ['b', 'g', 'y'],
+             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\SM_b_KST_Both_b_"
+             )
