@@ -247,7 +247,7 @@ def plot_diffs_2(scopes, labels, colour, folder):
         abs_x0 = scopes[i][2]
         trimmed_x0 = [x for x in abs_x0 if x >= -5 and x <= 5]
         bins_x0 = 100
-        data = ax7.hist(trimmed_x0, bins_x0, histtype='step', color=colour[i], label=labels[i])
+        data = ax7.hist(abs_x0, bins_x0, histtype='step', color=colour[i], label=labels[i])
 
         # Generate data from bins as a set of points
         x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
@@ -255,18 +255,13 @@ def plot_diffs_2(scopes, labels, colour, folder):
 
         popt, pcov = curve_fit(f, x, y)
 
-        x_fit = py.linspace(-5, 5, 200)
+        x_fit = py.linspace(min(abs_x0), max(abs_x0), 200)
         y_fit = f(x_fit, *popt)
 
         ax8.plot(x_fit, y_fit, lw=2, color=colour[i])
 
-        ax9.hist(trimmed_x0, bins_x0, histtype='step', color=colour[i], label=labels[i])
+        ax9.hist(abs_x0, bins_x0, histtype='step', color=colour[i], label=labels[i])
         ax9.plot(x_fit, y_fit, lw=2, color=colour[i])
-
-        if minn >= min(trimmed_x0_x0):
-            minn = min(trimmed_x0_x0)
-        if maxx <= max(trimmed_x0_x0):
-            maxx = max(trimmed_x0)
 
     if not os.path.isdir(folder):
         os.makedirs(folder)
@@ -278,7 +273,7 @@ def plot_diffs_2(scopes, labels, colour, folder):
     plt.xlabel('Residual (true - fitted value of x0)')
     plt.ylabel('Probability')
     ax7.legend()
-    plt.xlim(minn, maxx)
+    plt.xlim(-1, 1)
     figa3.savefig(folder + 'x0.png')
     plt.close()
     # plt.show()
