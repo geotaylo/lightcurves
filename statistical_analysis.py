@@ -3,8 +3,13 @@ import csv
 from prettytable import PrettyTable
 import os
 import matplotlib.pyplot as plt
+import pylab as py
+from scipy.stats import norm
+import matplotlib.mlab as mlab
 import numpy as np
 import win32api
+from scipy.optimize import curve_fit
+
 
 def analyse(folder, set, fails=[], wipe_fails=False):
 
@@ -21,7 +26,6 @@ def analyse(folder, set, fails=[], wipe_fails=False):
     for x in lines:
         error_set.append(int(x.strip('SN : \n')))
     f.close()
-
 
 
     # Import and strip true and fitted params
@@ -62,28 +66,28 @@ def analyse(folder, set, fails=[], wipe_fails=False):
             true_x1.append(float(row[4].replace('x1:','')))
             true_z.append(float(row[5].replace('z:','')))
 
+    # Calculate residuals
 
-
-
-
-
-
-
-
-    # Calculate differences
     diff_c = []
     diff_t0 = []
     diff_x0 = []
     diff_x1 = []
     diff_z = []
 
+    # For percentage difference not using right now)
+    # for i in range(len(true_c)):
+    #     diff_c.append((true_c[i] - fitted_c[i])/true_c[i]*100)
+    #     diff_t0.append((true_t0[i] - fitted_t0[i]))
+    #     diff_x0.append((true_x0[i] - fitted_x0[i])/true_x0[i]*100)
+    #     diff_x1.append((true_x1[i] - fitted_x1[i])/true_x1[i]*100)
+    #     diff_z.append((true_z[i] - fitted_z[i])/true_z[i]*100)
 
     for i in range(len(true_c)):
-        diff_c.append(true_c[i] - fitted_c[i])
-        diff_t0.append(true_t0[i] - fitted_t0[i])
-        diff_x0.append(true_x0[i] - fitted_x0[i])
-        diff_x1.append(true_x1[i] - fitted_x1[i])
-        diff_z.append(true_z[i] - fitted_z[i])
+        diff_c.append((true_c[i] - fitted_c[i]))
+        diff_t0.append((true_t0[i] - fitted_t0[i]))
+        diff_x0.append((true_x0[i] - fitted_x0[i]))
+        diff_x1.append((true_x1[i] - fitted_x1[i]))
+        diff_z.append((true_z[i] - fitted_z[i]))
 
 
 
@@ -114,17 +118,15 @@ def analyse(folder, set, fails=[], wipe_fails=False):
     t = PrettyTable()
     t.title = set
     t.add_column('SN', sn_num)
-    t.add_column('c-diff', diff_c)
-    t.add_column('t0-diff', diff_t0)
-    t.add_column('x0-diff', diff_x0)
-    t.add_column('x1-diff', diff_x1)
-    t.add_column('z-diff', diff_z)
-
-    print t
+    t.add_column('c-diff-percent', diff_c)
+    t.add_column('t0-diff-days', diff_t0)
+    t.add_column('x0-diff-percent', diff_x0)
+    t.add_column('x1-diff-percent', diff_x1)
+    t.add_column('z-diff-percent', diff_z)
 
     table_txt = t.get_string()
 
-    writefolder = folder + 'stats/'
+    writefolder = folder + "stats\\"
     if not os.path.isdir(writefolder):
         os.makedirs(writefolder)
 
@@ -135,103 +137,197 @@ def analyse(folder, set, fails=[], wipe_fails=False):
         with open(writefolder + 'output.txt', 'w') as file:
             file.write(table_txt)
 
-
     diffs = [diff_c, diff_t0, diff_x0, diff_x1, diff_z]
 
     return error_set, diffs
 
 def abs_and_weight(list):
-    abs_list = map(abs, list)
+    # Not currently using absolute values
+    #abs_list = map(abs, list)
+    abs_list = list
     weights = np.ones_like(abs_list) / float(len(list))
     return abs_list, weights
 
+# Equation for Gaussian
+def f(x, a, b, c):
+    return a * py.exp(-(x - b) ** 2.0 / (2 * c ** 2))
+
 def plot_diffs_2(scopes, labels, colour, folder):
 
-    # folder = folder + 'full_'
+    figa, (ax1, ax2, ax3) = plt.subplots(3, sharex=True, sharey=True)
+    min_c = 10000
+    max_c = -10000
+    for i in range(0, len(scopes)):
+        abs_c = scopes[i][0]
+        trimmed_c = [x for x in abs_c if x >= -2 and x <= 2]
+        bins_c = 40
+        data = ax1.hist(trimmed_c, bins_c, histtype='step', color=colour[i], label=labels[i])
+
+        # Generate data from bins as a set of points
+        x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
+        y = data[0]
+
+        popt, pcov = curve_fit(f, x, y)
+
+        x_fit = py.linspace(-2, 2, 200)
+        y_fit = f(x_fit, *popt)
+
+        ax2.plot(x_fit, y_fit, lw=2, color=colour[i])
+
+        ax3.hist(trimmed_c, bins_c, histtype='step', color=colour[i], label=labels[i])
+        ax3.plot(x_fit, y_fit, lw=2, color=colour[i])
+
+        if min_c >= min(trimmed_c):
+            min_c = min(trimmed_c)
+        if max_c <= max(trimmed_c):
+            max_c = max(trimmed_c)
+
     if not os.path.isdir(folder):
         os.makedirs(folder)
 
-    for i in range(0, len(scopes)):
-        abs_c, weights_c = abs_and_weight(scopes[i][0])
-        plt.hist(abs_c, bins=50, range=[0, 1], histtype='step', weights=weights_c, color=colour[i],
-                  label=labels[i])
-        # plt.hist(abs_c, bins=50, histtype='step', weights=weights_c, color=colour[i],
-        #          label=labels[i])
-
-    plt.title('Colour Residuals')
+    figa.subplots_adjust(hspace=0)
+    plt.setp([a.get_xticklabels() for a in figa.axes[:-1]], visible=False)
+    ax1.set_title('Colour Residuals')
     plt.xlabel('Residual (true - fitted value of c)')
-    plt.ylabel('Probability')
-    plt.legend()
-    plt.savefig(folder + 'colour.png')
-    plt.clf()
-    # plt.show()
+    plt.ylabel('Frequency')
+    plt.xlim(min_c,max_c)
+    ax1.legend()
+    figa.savefig(folder + 'colour.png')
+    plt.close()
 
+
+    figa2, (ax4, ax5, ax6) = plt.subplots(3, sharex=True, sharey=True)
+
+    minn = 10000
+    maxx = -10000
     for i in range(0, len(scopes)):
-        abs_t0, weights_t0 = abs_and_weight(scopes[i][1])
-        plt.hist(abs_t0, bins=50, range=[0, 1], histtype='step', weights=weights_t0, color=colour[i],
-                 label=labels[i])
-        # plt.hist(abs_t0, bins=50, histtype='step', weights=weights_t0, color=colour[i],
-        #          label=labels[i])
+        abs_t0 = scopes[i][1]
+        trimmed_t0 = [x for x in abs_t0 if x >= -5 and x <= 5]
+        bins_t0 = 40
+        data = ax4.hist(trimmed_t0, bins_t0, histtype='step', color=colour[i], label=labels[i])
 
-    plt.title('Explosion Time Residuals')
+        # Generate data from bins as a set of points
+        x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
+        y = data[0]
+
+        popt, pcov = curve_fit(f, x, y)
+
+        x_fit = py.linspace(-5, 5, 200)
+        y_fit = f(x_fit, *popt)
+
+        ax5.plot(x_fit, y_fit, lw=2, color=colour[i])
+
+        ax6.hist(trimmed_t0, bins_t0, histtype='step', color=colour[i], label=labels[i])
+        ax6.plot(x_fit, y_fit, lw=2, color=colour[i])
+
+        if minn >= min(trimmed_t0):
+            minn = min(trimmed_t0)
+        if maxx <= max(trimmed_t0):
+            maxx = max(trimmed_t0)
+
+    if not os.path.isdir(folder):
+        os.makedirs(folder)
+
+    figa2.subplots_adjust(hspace=0)
+    plt.setp([a.get_xticklabels() for a in figa.axes[:-1]], visible=False)
+    ax4.set_title('Explosion Time Residuals')
     plt.xlabel('Residual (true - fitted value of t0)')
     plt.ylabel('Probability')
-    plt.legend()
-    plt.savefig(folder + 't0.png')
-    plt.clf()
-    # plt.show()
+    plt.xlim(minn, maxx)
+    ax3.legend()
+    figa2.savefig(folder + 't0.png')
+    plt.close()
 
+    #
+    figa3, (ax7, ax8, ax9) = plt.subplots(3, sharex=True, sharey=True)
+
+    minn = 10000
+    maxx = -10000
     for i in range(0, len(scopes)):
-        abs_x0, weights_x0 = abs_and_weight(scopes[i][2])
-        plt.hist(abs_x0, bins=50, range=[0, 1], histtype='step', weights=weights_x0, color=colour[i],
-                 label=labels[i])
-        #plt.hist(abs_x0, bins=50, histtype='step', weights=weights_x0, color=colour[i],
-        #         label=labels[i])
+        abs_x0 = scopes[i][2]
+        trimmed_x0 = [x for x in abs_x0 if x >= -5 and x <= 5]
+        bins_x0 = 100
+        data = ax7.hist(trimmed_x0, bins_x0, histtype='step', color=colour[i], label=labels[i])
 
-    plt.title('x0 Residuals')
+        # Generate data from bins as a set of points
+        x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
+        y = data[0]
+
+        popt, pcov = curve_fit(f, x, y)
+
+        x_fit = py.linspace(-5, 5, 200)
+        y_fit = f(x_fit, *popt)
+
+        ax8.plot(x_fit, y_fit, lw=2, color=colour[i])
+
+        ax9.hist(trimmed_x0, bins_x0, histtype='step', color=colour[i], label=labels[i])
+        ax9.plot(x_fit, y_fit, lw=2, color=colour[i])
+
+        if minn >= min(trimmed_x0_x0):
+            minn = min(trimmed_x0_x0)
+        if maxx <= max(trimmed_x0_x0):
+            maxx = max(trimmed_x0)
+
+    if not os.path.isdir(folder):
+        os.makedirs(folder)
+
+
+    figa3.subplots_adjust(hspace=0)
+    plt.setp([a.get_xticklabels() for a in figa.axes[:-1]], visible=False)
+    ax7.set_title('x0 Residuals')
     plt.xlabel('Residual (true - fitted value of x0)')
     plt.ylabel('Probability')
-    plt.legend()
-    plt.savefig(folder + 'x0.png')
-    plt.clf()
+    ax7.legend()
+    plt.xlim(minn, maxx)
+    figa3.savefig(folder + 'x0.png')
+    plt.close()
     # plt.show()
 
-    for i in range(0, len(scopes)):
-        abs_x1, weights_x1 = abs_and_weight(scopes[i][3])
-        plt.hist(abs_x1, bins=50, range=[0, 1], histtype='step', weights=weights_x1, color=colour[i],
-                 label=labels[i])
-        #plt.hist(abs_x1, bins=50, histtype='step', weights=weights_x1, color=colour[i],
-        #          label=labels[i])
 
-    plt.title('x1 Residuals')
+    figa4, (ax10, ax11, ax12) = plt.subplots(3, sharex=True, sharey=True)
+
+    minn = 10000
+    maxx = -10000
+    for i in range(0, len(scopes)):
+        abs_x1 = scopes[i][3]
+        trimmed_x1 = [x for x in abs_x1 if x >= -2 and x <= 2]
+        bins_x1 = 16
+        data = ax10.hist(trimmed_x1, bins_x1, histtype='step', color=colour[i], label=labels[i])
+
+        # Generate data from bins as a set of points
+        x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
+        y = data[0]
+
+        popt, pcov = curve_fit(f, x, y)
+
+        x_fit = py.linspace(-2, 2, 200)
+        y_fit = f(x_fit, *popt)
+
+        ax11.plot(x_fit, y_fit, lw=2, color=colour[i])
+
+        ax12.hist(trimmed_x1, bins_x1, histtype='step', color=colour[i], label=labels[i])
+        ax12.plot(x_fit, y_fit, lw=2, color=colour[i])
+
+        if minn >= min(trimmed_x1):
+            minn = min(trimmed_x1)
+        if maxx <= max(trimmed_x1):
+            maxx = max(trimmed_x1)
+
+    if not os.path.isdir(folder):
+        os.makedirs(folder)
+
+    figa4.subplots_adjust(hspace=0)
+    plt.setp([a.get_xticklabels() for a in figa.axes[:-1]], visible=False)
+    ax10.set_title('x1 Residuals')
     plt.xlabel('Residual (true - fitted value of x1)')
     plt.ylabel('Probability')
-    plt.legend()
-    plt.savefig(folder + 'x1.png')
-    plt.clf()
+    ax10.legend()
+    plt.xlim(minn, maxx)
+    figa4.savefig(folder + 'x1.png')
+    figa4.clf()
     # plt.show()
 
     return
-
-
-
-# FULL SETS (errors not trimmed)
-#
-# smb_fails, smb_diffs = analyse('Honours_data_sets/5_270218/1_stat_sample/Kepler_6hours/SM_5day/vObs_2/100SN_3/sm_bad_seeing/',
-#                     'sm_bad_seeing')
-# smg_fails, smg_diffs = analyse('Honours_data_sets/5_270218/1_stat_sample/Kepler_6hours/SM_5day/vObs_2/100SN_3/sm_good_seeing/',
-#                     'sm_good_seeing')
-# kst_fails, kst_diffs = analyse('Honours_data_sets/5_270218/1_stat_sample/Kepler_6hours/SM_5day/vObs_2/100SN_3/kst/', 'kst')
-# bothb_fails, bothb_diffs = analyse('Honours_data_sets/5_270218/1_stat_sample/Kepler_6hours/SM_5day/vObs_2/100SN_3/both_bad_seeing/',
-#                    'both_bad_seeing', fails=kst_fails)
-# bothg_fails, bothg_diffs = analyse('Honours_data_sets/5_270218/1_stat_sample/Kepler_6hours/SM_5day/vObs_2/100SN_3/both_good_seeing/',
-#                    'both_good_seeing', fails=kst_fails)
-#
-# plot_diffs(smb_diffs, smg_diffs, kst_diffs, bothb_diffs, bothg_diffs,
-#            'Honours_data_sets/5_270218/1_stat_sample/Kepler_6hours/SM_5day/vObs_2/100SN_3/stats/full/')
-
-
-
 
 
 smb_fails2, smb_diffs2 = analyse('Honours_data_sets/5_270218/1_stat_sample/Kepler_6hours/SM_5day/vObs_2/100SN_3/sm_bad_seeing/',
@@ -242,60 +338,72 @@ kst_fails2, kst_diffs2 = analyse('Honours_data_sets/5_270218/1_stat_sample/Keple
                    wipe_fails=True)
 bothb_fails2, bothb_diffs2 = analyse('Honours_data_sets/5_270218/1_stat_sample/Kepler_6hours/SM_5day/vObs_2/100SN_3/both_bad_seeing/',
                    'both_bad_seeing', fails=kst_fails2, wipe_fails=True)
-bothg_fails2, bothg_diffs2 = analyse('Honours_data_sets/5_270218/1_stat_sample/Kepler_6hours/SM_5day/vObs_2/100SN_3/both_good_seeing/',
+bothg_fails2, bothg_diffs2 = analyse(u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\both_good_seeing\\",
                    'both_good_seeing', fails=kst_fails2, wipe_fails=True)
 
 
-
+# Plot different scope combinations
 
 plot_diffs_2([smb_diffs2, smg_diffs2, kst_diffs2, bothb_diffs2, bothg_diffs2],
              ['SM bad seeing', 'SM good seeing', 'KST', 'Both bad seeing', 'Both good seeing'],
              ['b', 'r', 'g', 'y', 'k'],
-             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\all_")
+             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats"
+             u"\\errors_removed"
+             u"\\all"
+             u"\\")
 
 plot_diffs_2([smb_diffs2],
              ['SM bad seeing'],
              ['b'],
-             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\SM_b_")
+             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats"
+             u"\\errors_removed"
+             u"\\SM_b\\")
 
 plot_diffs_2([smg_diffs2],
              ['SM good seeing'],
              ['r'],
-             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\SM_g_")
+             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats"
+             u"\\errors_removed"
+             u"\\SM_g\\")
 
 plot_diffs_2([kst_diffs2],
              ['KST'],
              ['g'],
-             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\KST_")
+             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats"
+             u"\\errors_removed"
+             u"\\KST"
+             u"\\")
 
 plot_diffs_2([bothb_diffs2],
              ['Both bad seeing'],
              ['y'],
-             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\Both_b_")
+             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats"
+             u"\\errors_removed"
+             u"\\Both_b\\")
 
 plot_diffs_2([bothg_diffs2],
              ['Both good seeing'],
              ['k'],
-             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\Both_g_")
+             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\Both_g\\")
 
 plot_diffs_2([smb_diffs2, smg_diffs2],
              ['SM bad seeing', 'SM good seeing'],
              ['b', 'r'],
-             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\SM_g_SM_b_")
+             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\SM_g_SM_b\\")
 
 plot_diffs_2([bothb_diffs2, bothg_diffs2],
              ['Both bad seeing', 'Both good seeing'],
              ['y', 'k'],
-             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\Both_g_Both_b_")
+             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\Both_g_Both_b\\")
 
 plot_diffs_2([smg_diffs2, kst_diffs2, bothg_diffs2],
              ['SM good seeing', 'KST', 'Both good seeing'],
              ['r', 'g', 'k'],
-             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\SM_g_KST_Both_g_"
+             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\SM_g_KST_Both_g\\"
             )
 
 plot_diffs_2([smb_diffs2, kst_diffs2, bothb_diffs2],
              ['SM bad seeing', 'KST', 'Both bad seeing'],
              ['b', 'g', 'y'],
-             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\SM_b_KST_Both_b_"
+             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\SM_b_KST_Both_b\\"
              )
