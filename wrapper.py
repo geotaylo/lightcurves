@@ -12,13 +12,14 @@ run_sncosmo.py.  Can be edited to suit user.
 import run_sncosmo as run
 
 # Number of SN to simulate (if using sncosmo distribution, use 0).
-nSNe = 100
+nSNe = 3
 
 # Path to store info about whole observing set, used by each run.
 # ENSURE / is at end of path!
-parent_folder = 'Honours_data_sets/4_080218/1_stat_sample' \
-                '/Kepler_6hours/SM_5day/vObs_2/100SN/'
+parent_folder = 'Honours_data_sets/041118/'
 
+# Write observational parameters
+run.write_params(parent_folder, nSNe)
 
 # Paths to store individual runs
 # ENSURE / is at end of path!

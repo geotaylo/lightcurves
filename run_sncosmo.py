@@ -87,7 +87,8 @@ H0 = 70.00
 dust = sncosmo.CCM89Dust()
 
 # Change path to location of dustmaps
-dustmap = sfdmap.SFDMap("/home/gtaylor/sfddata-master")
+dustmap = sfdmap.SFDMap("/home/georgie/sfddata-master")#thinkpad
+                        #("/home/gtaylor/sfddata-master")#surface
 
 
 # SALT2 MODEL TEMPLATE --------------------------------------------------------
@@ -182,6 +183,20 @@ def get_skynoise(filter, seeing):
 
     return 4*math.pi*sigma_psf*sigma_pixel
 
+def write_params(folder, sn):
+    """ Writes observational parameters to a file for reference"""
+    ensure_dir(folder)
+
+    p_file = folder + 'observing_parameters.txt'
+    pf = open(p_file, 'w')
+    pf.write('Kepler cadence: %s days. \n\
+    SkyMapper cadence: %s days. \n\
+    Number of v filter observations: %s.\n\
+    Number of SN: %s. \n\
+    Fitting method: chi-squared initial guess passed to MCMC.'\
+             % (cad_k, cad_sm, v_obs, sn))
+
+    pf.close()
 
 # A: GENERATING SET OF SUPERNOVAE ---------------------------------------------
 
@@ -528,10 +543,11 @@ def combine_scopes(parent_folder, f_1, f_2, f_3, nSNe):
         the light curve files 'observed_lc_i' into a new light curve file,
         which is saved in f3.
     """
+    ensure_dir(parent_folder+f_3)
     lc_list = []
 
     # Copy true_parameters file to new folder.
-    copyfile(f_1 + 'true_parameters.txt', f_3 + 'true_parameters.txt')
+    copyfile(parent_folder + f_1 + 'true_parameters.txt', parent_folder + f_3 + 'true_parameters.txt')
 
     for t in range(nSNe):
 
@@ -565,8 +581,10 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/', t0=0):
     # Create text file for storing 'fitted' parameters for each SN.
     fitted_file = folder + 'fitted_parameters.txt'
     error_file = folder + 'error_sn.txt'
+    accuracy_file = folder + 'fitted_errors.txt'
     ff = open(fitted_file, 'w')
     ef = open(error_file, 'w')
+    af = open(accuracy_file, 'w')
     nSNe = len(lightcurve)
 
     # Get coordinates
@@ -586,17 +604,22 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/', t0=0):
         try:
             coords_out = [el[i] for el in coords_in]
             z = params[i]['z']
-            p, fitted_t0 = fit_util_lc(lightcurve[i], i + 1, folder, coords_out, z, t0[i])
+            p, fitted_t0, err = fit_util_lc(lightcurve[i], i + 1, folder, coords_out, z, t0[i])
 
             explosion_time.append(fitted_t0)
 
             # Write fitted parameters in text file.
             ff.write('SN%s: ' %(i+1))
+            af.write('SN%s: ' %(i+1))
 
             for key in sorted(p):
                 ff.write('%s:%s ' % (key, p[key]))
 
+            for key in sorted(err):
+                af.write('%s:%s ' % (key, err[key]))
+
             ff.write('\n')
+            af.write('\n')
 
             print 'Fitted parameters for supernova %s saved in %s \n'\
 		        %((i + 1), fitted_file)
@@ -609,12 +632,14 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/', t0=0):
 
             # Add fitted parameters as 0 for all (to fix indexing issue when using fitted t0 values)
             ff.write('SN%s: c:0 t0:0 x0:0 x1:0 z:0 \n' %(i+1))
+            af.write('SN%s: c:0 t0:0 x0:0 x1:0\n' %(i+1))
             explosion_time.append(0)
 
 
             pass
 
     ff.close()
+    af.close()
     ef.close()
 
     print explosion_time
@@ -705,6 +730,8 @@ def fit_util_lc(data, index, folder, coords_in, z, t0):
                           (result.param_names[4], result.parameters[4])
                           ])
 
+    fitted_errors = result.errors
+
     pp = PdfPages(plotname)
 
     sncosmo.plot_lc(data, model=fitted_model,
@@ -715,4 +742,4 @@ def fit_util_lc(data, index, folder, coords_in, z, t0):
 
     print 'Fitted light curve plotted in ' + plotname
 
-    return fitted_params, fitted_t0
+    return fitted_params, fitted_t0, fitted_errors

@@ -118,11 +118,11 @@ def analyse(folder, set, fails=[], wipe_fails=False):
     t = PrettyTable()
     t.title = set
     t.add_column('SN', sn_num)
-    t.add_column('c-diff-percent', diff_c)
-    t.add_column('t0-diff-days', diff_t0)
-    t.add_column('x0-diff-percent', diff_x0)
-    t.add_column('x1-diff-percent', diff_x1)
-    t.add_column('z-diff-percent', diff_z)
+    t.add_column('c-diff', diff_c)
+    t.add_column('t0-diff', diff_t0)
+    t.add_column('x0-diff', diff_x0)
+    t.add_column('x1-diff', diff_x1)
+    t.add_column('z-diff', diff_z)
 
     table_txt = t.get_string()
 
