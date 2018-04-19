@@ -429,8 +429,10 @@ def plot_errors(scopes, labels, colour, folder):
         max_c = -10000
         for i in range(0, len(scopes)):
             abs_c = scopes[i][0]
-            trimmed_c = [x for x in abs_c if x >= -2 and x <= 2]
-            bins_c = 100
+            c_flips = [-x for x in abs_c]
+            abs_c.extend(c_flips)
+            #trimmed_c = [x for x in abs_c if x >= -2 and x <= 2]
+            bins_c = 50
             data = ax1.hist(abs_c, bins_c, histtype='step', color=colour[i], label=labels[i])
 
             # Generate data from bins as a set of points
@@ -447,11 +449,6 @@ def plot_errors(scopes, labels, colour, folder):
             ax3.hist(abs_c, bins_c, histtype='step', color=colour[i], label=labels[i])
             ax3.plot(x_fit, y_fit, lw=2, color=colour[i])
 
-            if min_c >= min(trimmed_c):
-                min_c = min(trimmed_c)
-            if max_c <= max(trimmed_c):
-                max_c = max(trimmed_c)
-
         if not os.path.isdir(folder):
             os.makedirs(folder)
 
@@ -460,7 +457,6 @@ def plot_errors(scopes, labels, colour, folder):
         ax1.set_title('Colour Errors')
         plt.xlabel('C Error')
         plt.ylabel('Density')
-        #plt.xlim(min_c,max_c)
         ax1.legend()
         figa.savefig(folder + 'colour.png')
         plt.close()
@@ -471,13 +467,13 @@ def plot_errors(scopes, labels, colour, folder):
     try:
         figa2, (ax4, ax5, ax6) = plt.subplots(3, sharex=True, sharey=True)
 
-        minn = 10000
-        maxx = -10000
         for i in range(0, len(scopes)):
             abs_t0 = scopes[i][1]
+            t0_flips = [-x for x in abs_t0]
+            abs_t0.extend(t0_flips)
             trimmed_t0 = [x for x in abs_t0 if x >= -5 and x <= 5]
-            bins_t0 = 100
-            data = ax4.hist(abs_t0, bins_t0, histtype='step', color=colour[i], label=labels[i])
+            bins_t0 = 50
+            data = ax4.hist(trimmed_t0, bins_t0, histtype='step', color=colour[i], label=labels[i])
 
             # Generate data from bins as a set of points
             x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
@@ -490,23 +486,17 @@ def plot_errors(scopes, labels, colour, folder):
 
             ax5.plot(x_fit, y_fit, lw=2, color=colour[i])
 
-            ax6.hist(abs_t0, bins_t0, histtype='step', color=colour[i], label=labels[i])
+            ax6.hist(trimmed_t0, bins_t0, histtype='step', color=colour[i], label=labels[i])
             ax6.plot(x_fit, y_fit, lw=2, color=colour[i])
-
-            if minn >= min(trimmed_t0):
-                minn = min(trimmed_t0)
-            if maxx <= max(trimmed_t0):
-                maxx = max(trimmed_t0)
 
         if not os.path.isdir(folder):
             os.makedirs(folder)
 
         figa2.subplots_adjust(hspace=0)
         plt.setp([a.get_xticklabels() for a in figa2.axes[:-1]], visible=False)
-        ax4.set_title('Explosion Time Residuals')
-        plt.xlabel('Residual (true - fitted value of t0)')
-        plt.ylabel('Probability')
-        #plt.xlim(minn, maxx)
+        ax4.set_title('Explosion Time Errors')
+        plt.xlabel('t0 Error')
+        plt.ylabel('Density')
         ax4.legend()
         figa2.savefig(folder + 't0.png')
         plt.close()
@@ -517,10 +507,10 @@ def plot_errors(scopes, labels, colour, folder):
     try:
         figa3, (ax7, ax8, ax9) = plt.subplots(3, sharex=True, sharey=True)
 
-        minn = 10000
-        maxx = -10000
         for i in range(0, len(scopes)):
             abs_x0 = scopes[i][2]
+            x0_flips = [-x for x in abs_x0]
+            abs_x0.extend(x0_flips)
             trimmed_x0 = [x for x in abs_x0 if x >= -5 and x <= 5]
             bins_x0 = 100
             data = ax7.hist(abs_x0, bins_x0, histtype='step', color=colour[i], label=labels[i])
@@ -545,11 +535,10 @@ def plot_errors(scopes, labels, colour, folder):
 
         figa3.subplots_adjust(hspace=0)
         plt.setp([a.get_xticklabels() for a in figa3.axes[:-1]], visible=False)
-        ax7.set_title('x0 Residuals')
-        plt.xlabel('Residual (true - fitted value of x0)')
-        plt.ylabel('Probability')
+        ax7.set_title('x0 Errors')
+        plt.xlabel('x0 Error')
+        plt.ylabel('Density')
         ax7.legend()
-        #plt.xlim(-1, 1)
         figa3.savefig(folder + 'x0.png')
         plt.close()
         # plt.show()
@@ -560,13 +549,13 @@ def plot_errors(scopes, labels, colour, folder):
     try:
         figa4, (ax10, ax11, ax12) = plt.subplots(3, sharex=True, sharey=True)
 
-        minn = 10000
-        maxx = -10000
         for i in range(0, len(scopes)):
             abs_x1 = scopes[i][3]
+            x1_flips = [-x for x in abs_x1]
+            abs_x1.extend(x1_flips)
             trimmed_x1 = [x for x in abs_x1 if x >= -2 and x <= 2]
-            bins_x1 = 100
-            data = ax10.hist(abs_x1, bins_x1, histtype='step', color=colour[i], label=labels[i])
+            bins_x1 = 50
+            data = ax10.hist(trimmed_x1, bins_x1, histtype='step', color=colour[i], label=labels[i])
 
             # Generate data from bins as a set of points
             x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
@@ -574,29 +563,23 @@ def plot_errors(scopes, labels, colour, folder):
 
             popt, pcov = curve_fit(f, x, y)
 
-            x_fit = py.linspace(min(abs_x1), max(abs_x1), 200)
+            x_fit = py.linspace(min(trimmed_x1), max(trimmed_x1), 200)
             y_fit = f(x_fit, *popt)
 
             ax11.plot(x_fit, y_fit, lw=2, color=colour[i])
 
-            ax12.hist(abs_x1, bins_x1, histtype='step', color=colour[i], label=labels[i])
+            ax12.hist(trimmed_x1, bins_x1, histtype='step', color=colour[i], label=labels[i])
             ax12.plot(x_fit, y_fit, lw=2, color=colour[i])
-
-            if minn >= min(trimmed_x1):
-                minn = min(trimmed_x1)
-            if maxx <= max(trimmed_x1):
-                maxx = max(trimmed_x1)
 
         if not os.path.isdir(folder):
             os.makedirs(folder)
 
         figa4.subplots_adjust(hspace=0)
         plt.setp([a.get_xticklabels() for a in figa4.axes[:-1]], visible=False)
-        ax10.set_title('x1 Residuals')
-        plt.xlabel('Residual (true - fitted value of x1)')
-        plt.ylabel('Probability')
+        ax10.set_title('Stretch Errors')
+        plt.xlabel('x1 Error')
+        plt.ylabel('Density')
         ax10.legend()
-        #plt.xlim(minn, maxx)
         figa4.savefig(folder + 'x1.png')
         figa4.clf()
         # plt.show()
