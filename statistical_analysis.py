@@ -7,7 +7,6 @@ import pylab as py
 from scipy.stats import norm
 import matplotlib.mlab as mlab
 import numpy as np
-import win32api
 from scipy.optimize import curve_fit
 
 
@@ -152,7 +151,7 @@ def abs_and_weight(list):
 def f(x, a, b, c):
     return a * py.exp(-(x - b) ** 2.0 / (2 * c ** 2))
 
-def plot_diffs_2(scopes, labels, colour, folder):
+def plot_diffs(scopes, labels, colour, folder):
 
     figa, (ax1, ax2, ax3) = plt.subplots(3, sharex=True, sharey=True)
     min_c = 10000
@@ -325,80 +324,73 @@ def plot_diffs_2(scopes, labels, colour, folder):
     return
 
 
-smb_fails2, smb_diffs2 = analyse('Honours_data_sets/5_270218/1_stat_sample/Kepler_6hours/SM_5day/vObs_2/100SN_3/sm_bad_seeing/',
+def plot_wrap(smb_diffs2, smg_diffs2, kst_diffs2, bothb_diffs2, bothg_diffs2, parent):
+    parent = parent + 'stats/errors_removed/residuals/'
+
+    plot_diffs([smb_diffs2, smg_diffs2, kst_diffs2, bothb_diffs2, bothg_diffs2],
+               ['SM bad seeing', 'SM good seeing', 'KST', 'Both bad seeing', 'Both good seeing'],
+               ['b', 'r', 'g', 'y', 'k'],
+               parent + 'all/')
+
+    plot_diffs([smb_diffs2],
+               ['SM bad seeing'],
+               ['b'],
+               parent + 'SM_b/')
+
+    plot_diffs([smg_diffs2],
+               ['SM good seeing'],
+               ['r'],
+               parent + 'SM_g/')
+
+    plot_diffs([kst_diffs2],
+               ['KST'],
+               ['g'],
+               parent + 'KST/')
+
+    plot_diffs([bothb_diffs2],
+               ['Both bad seeing'],
+               ['y'],
+               parent + 'Both_b/')
+
+    plot_diffs([bothg_diffs2],
+               ['Both good seeing'],
+               ['k'],
+               parent + 'Both_g/')
+
+    plot_diffs([smb_diffs2, smg_diffs2],
+               ['SM bad seeing', 'SM good seeing'],
+               ['b', 'r'],
+               parent + 'SM_g_SM_b/')
+
+    plot_diffs([bothb_diffs2, bothg_diffs2],
+               ['Both bad seeing', 'Both good seeing'],
+               ['y', 'k'],
+               parent + 'Both_g_Both_b/')
+
+    plot_diffs([smg_diffs2, kst_diffs2, bothg_diffs2],
+               ['SM good seeing', 'KST', 'Both good seeing'],
+               ['r', 'g', 'k'],
+               parent + 'SM_g_KST_Both_g/')
+
+    plot_diffs([smb_diffs2, kst_diffs2, bothb_diffs2],
+               ['SM bad seeing', 'KST', 'Both bad seeing'],
+               ['b', 'g', 'y'],
+               parent + 'SM_b_KST_Both_b/')
+    return
+
+
+parent = 'Honours_data_sets/041218/'
+smb_fails2, smb_diffs2 = analyse(parent + 'sm_bad_seeing/',
                     'sm_bad_seeing', wipe_fails=True)
-smg_fails2, smg_diffs2 = analyse('Honours_data_sets/5_270218/1_stat_sample/Kepler_6hours/SM_5day/vObs_2/100SN_3/sm_good_seeing/',
+smg_fails2, smg_diffs2 = analyse(parent + 'sm_good_seeing/',
                     'sm_good_seeing', wipe_fails=True)
-kst_fails2, kst_diffs2 = analyse('Honours_data_sets/5_270218/1_stat_sample/Kepler_6hours/SM_5day/vObs_2/100SN_3/kst/', 'kst',
+kst_fails2, kst_diffs2 = analyse(parent + 'kst/', 'kst',
                    wipe_fails=True)
-bothb_fails2, bothb_diffs2 = analyse('Honours_data_sets/5_270218/1_stat_sample/Kepler_6hours/SM_5day/vObs_2/100SN_3/both_bad_seeing/',
+bothb_fails2, bothb_diffs2 = analyse(parent + 'both_bad_seeing/',
                    'both_bad_seeing', fails=kst_fails2, wipe_fails=True)
-bothg_fails2, bothg_diffs2 = analyse(u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\both_good_seeing\\",
+bothg_fails2, bothg_diffs2 = analyse(parent + 'both_good_seeing/',
                    'both_good_seeing', fails=kst_fails2, wipe_fails=True)
 
 
 # Plot different scope combinations
-
-plot_diffs_2([smb_diffs2, smg_diffs2, kst_diffs2, bothb_diffs2, bothg_diffs2],
-             ['SM bad seeing', 'SM good seeing', 'KST', 'Both bad seeing', 'Both good seeing'],
-             ['b', 'r', 'g', 'y', 'k'],
-             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats"
-             u"\\errors_removed"
-             u"\\all"
-             u"\\")
-
-plot_diffs_2([smb_diffs2],
-             ['SM bad seeing'],
-             ['b'],
-             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats"
-             u"\\errors_removed"
-             u"\\SM_b\\")
-
-plot_diffs_2([smg_diffs2],
-             ['SM good seeing'],
-             ['r'],
-             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats"
-             u"\\errors_removed"
-             u"\\SM_g\\")
-
-plot_diffs_2([kst_diffs2],
-             ['KST'],
-             ['g'],
-             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats"
-             u"\\errors_removed"
-             u"\\KST"
-             u"\\")
-
-plot_diffs_2([bothb_diffs2],
-             ['Both bad seeing'],
-             ['y'],
-             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats"
-             u"\\errors_removed"
-             u"\\Both_b\\")
-
-plot_diffs_2([bothg_diffs2],
-             ['Both good seeing'],
-             ['k'],
-             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\Both_g\\")
-
-plot_diffs_2([smb_diffs2, smg_diffs2],
-             ['SM bad seeing', 'SM good seeing'],
-             ['b', 'r'],
-             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\SM_g_SM_b\\")
-
-plot_diffs_2([bothb_diffs2, bothg_diffs2],
-             ['Both bad seeing', 'Both good seeing'],
-             ['y', 'k'],
-             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\Both_g_Both_b\\")
-
-plot_diffs_2([smg_diffs2, kst_diffs2, bothg_diffs2],
-             ['SM good seeing', 'KST', 'Both good seeing'],
-             ['r', 'g', 'k'],
-             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\SM_g_KST_Both_g\\"
-            )
-
-plot_diffs_2([smb_diffs2, kst_diffs2, bothb_diffs2],
-             ['SM bad seeing', 'KST', 'Both bad seeing'],
-             ['b', 'g', 'y'],
-             u"\\\\?\\c:\\Users\\gltay\\AppData\\Local\\Packages\\CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc\\LocalState\\rootfs\\home\\gtaylor\\lightcurves\\Honours_data_sets\\5_270218\\1_stat_sample\\Kepler_6hours\\SM_5day\\vObs_2\\100SN_3\\stats\\errors_removed\\SM_b_KST_Both_b\\"
-             )
+plot_wrap(smb_diffs2, smg_diffs2, kst_diffs2, bothb_diffs2, bothg_diffs2, parent)
