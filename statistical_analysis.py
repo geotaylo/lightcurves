@@ -423,6 +423,7 @@ def plot_diffs(scopes, labels, colour, folder):
 
 def plot_errors(scopes, labels, colour, folder):
 
+
     try:
         figa, (ax1, ax2, ax3) = plt.subplots(3, sharex=True, sharey=True)
         min_c = 10000
@@ -431,9 +432,9 @@ def plot_errors(scopes, labels, colour, folder):
             abs_c = scopes[i][0]
             c_flips = [-x for x in abs_c]
             abs_c.extend(c_flips)
-            #trimmed_c = [x for x in abs_c if x >= -2 and x <= 2]
+            trimmed_c = [x for x in abs_c if x >= -.2 and x <= .2]
             bins_c = 50
-            data = ax1.hist(abs_c, bins_c, histtype='step', color=colour[i], label=labels[i])
+            data = ax1.hist(trimmed_c, bins_c, histtype='step', color=colour[i], label=labels[i])
 
             # Generate data from bins as a set of points
             x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
@@ -441,12 +442,12 @@ def plot_errors(scopes, labels, colour, folder):
 
             popt, pcov = curve_fit(f, x, y)
 
-            x_fit = py.linspace(min(abs_c), max(abs_c), 200)
+            x_fit = py.linspace(-.2, .2, 200)#(min(abs_c), max(abs_c), 200)
             y_fit = f(x_fit, *popt)
 
             ax2.plot(x_fit, y_fit, lw=2, color=colour[i])
 
-            ax3.hist(abs_c, bins_c, histtype='step', color=colour[i], label=labels[i])
+            ax3.hist(trimmed_c, bins_c, histtype='step', color=colour[i], label=labels[i])
             ax3.plot(x_fit, y_fit, lw=2, color=colour[i])
 
         if not os.path.isdir(folder):
@@ -471,7 +472,7 @@ def plot_errors(scopes, labels, colour, folder):
             abs_t0 = scopes[i][1]
             t0_flips = [-x for x in abs_t0]
             abs_t0.extend(t0_flips)
-            trimmed_t0 = [x for x in abs_t0 if x >= -5 and x <= 5]
+            trimmed_t0 = [x for x in abs_t0 if x >= -1 and x <= 1]
             bins_t0 = 50
             data = ax4.hist(trimmed_t0, bins_t0, histtype='step', color=colour[i], label=labels[i])
 
@@ -481,7 +482,7 @@ def plot_errors(scopes, labels, colour, folder):
 
             popt, pcov = curve_fit(f, x, y)
 
-            x_fit = py.linspace(min(abs_t0), max(abs_t0), 200)
+            x_fit = py.linspace(min(trimmed_t0), max(trimmed_t0), 200)
             y_fit = f(x_fit, *popt)
 
             ax5.plot(x_fit, y_fit, lw=2, color=colour[i])
@@ -553,7 +554,7 @@ def plot_errors(scopes, labels, colour, folder):
             abs_x1 = scopes[i][3]
             x1_flips = [-x for x in abs_x1]
             abs_x1.extend(x1_flips)
-            trimmed_x1 = [x for x in abs_x1 if x >= -2 and x <= 2]
+            trimmed_x1 = [x for x in abs_x1 if x >= -.5 and x <= .5]
             bins_x1 = 50
             data = ax10.hist(trimmed_x1, bins_x1, histtype='step', color=colour[i], label=labels[i])
 
