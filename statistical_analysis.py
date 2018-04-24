@@ -125,7 +125,7 @@ def analyse(folder, set, fails=[], wipe_fails=False):
 
     table_txt = t.get_string()
 
-    writefolder = folder + "stats\\"
+    writefolder = folder + "stats/"
     if not os.path.isdir(writefolder):
         os.makedirs(writefolder)
 
@@ -209,7 +209,7 @@ def analyse_errors(folder, set, fails=[], wipe_fails=False):
 
     table_txt = t.get_string()
 
-    writefolder = folder + "stats\\"
+    writefolder = folder + "stats/"
     if not os.path.isdir(writefolder):
         os.makedirs(writefolder)
 
@@ -245,7 +245,7 @@ def plot_diffs(scopes, labels, colour, folder):
             abs_c = scopes[i][0]
             trimmed_c = [x for x in abs_c if x >= -2 and x <= 2]
             bins_c = 40
-            data = ax1.hist(trimmed_c, bins_c, histtype='step', color=colour[i], label=labels[i])
+            data = ax1.hist(trimmed_c, bins_c, histtype='step', color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_c)))
 
             # Generate data from bins as a set of points
             x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
@@ -258,7 +258,7 @@ def plot_diffs(scopes, labels, colour, folder):
 
             ax2.plot(x_fit, y_fit, lw=2, color=colour[i])
 
-            ax3.hist(trimmed_c, bins_c, histtype='step', color=colour[i], label=labels[i])
+            ax3.hist(trimmed_c, bins_c, histtype='step', color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_c)/2))
             ax3.plot(x_fit, y_fit, lw=2, color=colour[i])
 
             if min_c >= min(trimmed_c):
@@ -275,7 +275,7 @@ def plot_diffs(scopes, labels, colour, folder):
         plt.xlabel('Residual (true - fitted value of c)')
         plt.ylabel('Frequency')
         plt.xlim(min_c,max_c)
-        ax1.legend()
+        ax1.legend(fontsize = 'x-small')
         figa.savefig(folder + 'colour.png')
         plt.close()
     except RuntimeError:
@@ -291,7 +291,7 @@ def plot_diffs(scopes, labels, colour, folder):
             abs_t0 = scopes[i][1]
             trimmed_t0 = [x for x in abs_t0 if x >= -5 and x <= 5]
             bins_t0 = 40
-            data = ax4.hist(trimmed_t0, bins_t0, histtype='step', color=colour[i], label=labels[i])
+            data = ax4.hist(trimmed_t0, bins_t0, histtype='step', color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_t0)))
 
             # Generate data from bins as a set of points
             x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
@@ -321,7 +321,7 @@ def plot_diffs(scopes, labels, colour, folder):
         plt.xlabel('Residual (true - fitted value of t0)')
         plt.ylabel('Probability')
         plt.xlim(minn, maxx)
-        ax4.legend()
+        ax4.legend(fontsize = 'x-small')
         figa2.savefig(folder + 't0.png')
         plt.close()
     except RuntimeError:
@@ -337,7 +337,7 @@ def plot_diffs(scopes, labels, colour, folder):
             abs_x0 = scopes[i][2]
             trimmed_x0 = [x for x in abs_x0 if x >= -5 and x <= 5]
             bins_x0 = 100
-            data = ax7.hist(abs_x0, bins_x0, histtype='step', color=colour[i], label=labels[i])
+            data = ax7.hist(abs_x0, bins_x0, histtype='step', color=colour[i], label=labels[i]+'(%s fits)'%str(len(abs_x0)))
 
             # Generate data from bins as a set of points
             x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
@@ -362,7 +362,7 @@ def plot_diffs(scopes, labels, colour, folder):
         ax7.set_title('x0 Residuals')
         plt.xlabel('Residual (true - fitted value of x0)')
         plt.ylabel('Probability')
-        ax7.legend()
+        ax7.legend(fontsize = 'x-small')
         plt.xlim(-1, 1)
         figa3.savefig(folder + 'x0.png')
         plt.close()
@@ -380,7 +380,7 @@ def plot_diffs(scopes, labels, colour, folder):
             abs_x1 = scopes[i][3]
             trimmed_x1 = [x for x in abs_x1 if x >= -2 and x <= 2]
             bins_x1 = 16
-            data = ax10.hist(trimmed_x1, bins_x1, histtype='step', color=colour[i], label=labels[i])
+            data = ax10.hist(trimmed_x1, bins_x1, histtype='step', color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_x1)))
 
             # Generate data from bins as a set of points
             x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
@@ -409,7 +409,7 @@ def plot_diffs(scopes, labels, colour, folder):
         ax10.set_title('x1 Residuals')
         plt.xlabel('Residual (true - fitted value of x1)')
         plt.ylabel('Probability')
-        ax10.legend()
+        ax10.legend(fontsize = 'x-small')
         plt.xlim(minn, maxx)
         figa4.savefig(folder + 'x1.png')
         figa4.clf()
@@ -424,6 +424,7 @@ def plot_diffs(scopes, labels, colour, folder):
 def plot_errors(scopes, labels, colour, folder):
 
 
+
     try:
         figa, (ax1, ax2, ax3) = plt.subplots(3, sharex=True, sharey=True)
         min_c = 10000
@@ -434,7 +435,7 @@ def plot_errors(scopes, labels, colour, folder):
             abs_c.extend(c_flips)
             trimmed_c = [x for x in abs_c if x >= -.2 and x <= .2]
             bins_c = 50
-            data = ax1.hist(trimmed_c, bins_c, histtype='step', color=colour[i], label=labels[i])
+            data = ax1.hist(trimmed_c, bins_c, histtype='step', color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_c)/2))
 
             # Generate data from bins as a set of points
             x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
@@ -458,7 +459,7 @@ def plot_errors(scopes, labels, colour, folder):
         ax1.set_title('Colour Errors')
         plt.xlabel('C Error')
         plt.ylabel('Density')
-        ax1.legend()
+        ax1.legend(fontsize = 'x-small')
         figa.savefig(folder + 'colour.png')
         plt.close()
     except RuntimeError:
@@ -474,7 +475,7 @@ def plot_errors(scopes, labels, colour, folder):
             abs_t0.extend(t0_flips)
             trimmed_t0 = [x for x in abs_t0 if x >= -1 and x <= 1]
             bins_t0 = 50
-            data = ax4.hist(trimmed_t0, bins_t0, histtype='step', color=colour[i], label=labels[i])
+            data = ax4.hist(trimmed_t0, bins_t0, histtype='step', color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_t0)/2))
 
             # Generate data from bins as a set of points
             x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
@@ -498,7 +499,7 @@ def plot_errors(scopes, labels, colour, folder):
         ax4.set_title('Explosion Time Errors')
         plt.xlabel('t0 Error')
         plt.ylabel('Density')
-        ax4.legend()
+        ax4.legend(fontsize = 'x-small')
         figa2.savefig(folder + 't0.png')
         plt.close()
     except RuntimeError:
@@ -514,7 +515,7 @@ def plot_errors(scopes, labels, colour, folder):
             abs_x0.extend(x0_flips)
             trimmed_x0 = [x for x in abs_x0 if x >= -5 and x <= 5]
             bins_x0 = 100
-            data = ax7.hist(abs_x0, bins_x0, histtype='step', color=colour[i], label=labels[i])
+            data = ax7.hist(abs_x0, bins_x0, histtype='step', color=colour[i], label=labels[i]+'(%s fits)'%str(len(abs_x0)/2))
 
             # Generate data from bins as a set of points
             x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
@@ -539,7 +540,7 @@ def plot_errors(scopes, labels, colour, folder):
         ax7.set_title('x0 Errors')
         plt.xlabel('x0 Error')
         plt.ylabel('Density')
-        ax7.legend()
+        ax7.legend(fontsize = 'x-small')
         figa3.savefig(folder + 'x0.png')
         plt.close()
         # plt.show()
@@ -556,7 +557,7 @@ def plot_errors(scopes, labels, colour, folder):
             abs_x1.extend(x1_flips)
             trimmed_x1 = [x for x in abs_x1 if x >= -.5 and x <= .5]
             bins_x1 = 50
-            data = ax10.hist(trimmed_x1, bins_x1, histtype='step', color=colour[i], label=labels[i])
+            data = ax10.hist(trimmed_x1, bins_x1, histtype='step', color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_x1)/2))
 
             # Generate data from bins as a set of points
             x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
@@ -580,7 +581,7 @@ def plot_errors(scopes, labels, colour, folder):
         ax10.set_title('Stretch Errors')
         plt.xlabel('x1 Error')
         plt.ylabel('Density')
-        ax10.legend()
+        ax10.legend(fontsize = 'x-small')
         figa4.savefig(folder + 'x1.png')
         figa4.clf()
         # plt.show()
@@ -701,20 +702,20 @@ def plot_wrap_er(smb_diffs2, smg_diffs2, kst_diffs2, bothb_diffs2, bothg_diffs2,
 
 
 parent = 'Honours_data_sets/041218/'
-# smb_fails2, smb_diffs2 = analyse(parent + 'sm_bad_seeing/',
-#                     'sm_bad_seeing', wipe_fails=True)
-# smg_fails2, smg_diffs2 = analyse(parent + 'sm_good_seeing/',
-#                     'sm_good_seeing', wipe_fails=True)
-# kst_fails2, kst_diffs2 = analyse(parent + 'kst/', 'kst',
-#                    wipe_fails=True)
-# bothb_fails2, bothb_diffs2 = analyse(parent + 'both_bad_seeing/',
-#                    'both_bad_seeing', fails=kst_fails2, wipe_fails=True)
-# bothg_fails2, bothg_diffs2 = analyse(parent + 'both_good_seeing/',
-#                    'both_good_seeing', fails=kst_fails2, wipe_fails=True)
-#
-#
-# # Plot different scope combinations
-# plot_wrap(smb_diffs2, smg_diffs2, kst_diffs2, bothb_diffs2, bothg_diffs2, parent)
+smb_fails2, smb_diffs2 = analyse(parent + 'sm_bad_seeing/',
+                    'sm_bad_seeing', wipe_fails=True)
+smg_fails2, smg_diffs2 = analyse(parent + 'sm_good_seeing/',
+                    'sm_good_seeing', wipe_fails=True)
+kst_fails2, kst_diffs2 = analyse(parent + 'kst/', 'kst',
+                   wipe_fails=True)
+bothb_fails2, bothb_diffs2 = analyse(parent + 'both_bad_seeing/',
+                   'both_bad_seeing', fails=kst_fails2, wipe_fails=True)
+bothg_fails2, bothg_diffs2 = analyse(parent + 'both_good_seeing/',
+                   'both_good_seeing', fails=kst_fails2, wipe_fails=True)
+
+
+# Plot different scope combinations
+plot_wrap(smb_diffs2, smg_diffs2, kst_diffs2, bothb_diffs2, bothg_diffs2, parent)
 
 smb_fails_er, smb_diffs_er = analyse_errors(parent + 'sm_bad_seeing/',
                     'sm_bad_seeing', wipe_fails=True)
