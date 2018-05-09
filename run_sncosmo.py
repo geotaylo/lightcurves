@@ -48,7 +48,8 @@ from shutil import copyfile
 # CONSTANTS -------------------------------------------------------------------
 
 # SkyMapper observing cadence (days)
-# NOTE: for SM cadence to vary randomly between
+# NOTE: for SM cadence to vary randomly between 1 and 2 days, cad_sm='well-sampled'
+# for SM cadence to vary randomly betwen 4 and 5 days, cad_sm='poorly-sampled'
 # 1 and 4 days, assign cad_sm = 0.
 cad_sm = 5.
 
@@ -190,7 +191,7 @@ def write_params(folder, sn):
     p_file = folder + 'observing_parameters.txt'
     pf = open(p_file, 'w')
     pf.write('Kepler cadence: %s days. \n\
-    SkyMapper cadence: %s days. \n\
+    SkyMapper cadence: %s days (well-sampled is randomly distributed between 1-2 days, poorly-sampled is 4-5 days.)\n\
     Number of v filter observations: %s.\n\
     Number of SN: %s. \n\
     Fitting method: chi-squared initial guess passed to MCMC.'\
@@ -267,12 +268,18 @@ def simulate_sn_set(folder, nSNe=0):
         t_obs_sm.append(to_sm)
 
         # Observation times
-        if cad_sm == 0.:
+        if cad_sm == 'well-sampled':
             time_hold = params[t].get('t0') + td_sm
             t_sm = []
             while time_hold <= (params[t].get('t0') + td_sm + to_sm):
                 t_sm.append(time_hold)
-                time_hold = time_hold + random.randint(1, 4)
+                time_hold = time_hold + random.randint(1, 2)
+        elif cad_sm == 'poorly-sampled':
+            time_hold = params[t].get('t0') + td_sm
+            t_sm = []
+            while time_hold <= (params[t].get('t0') + td_sm + to_sm):
+                t_sm.append(time_hold)
+                time_hold = time_hold + random.randint(4, 5)
         else:
             cad_sm_hold = [cad_sm] * nSNe
             t_sm = (params[t].get('t0')
