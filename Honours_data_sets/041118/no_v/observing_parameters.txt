@@ -1,0 +1,5 @@
+Kepler cadence: 0.25 days. 
+    SkyMapper cadence: 5.0 days. 
+    Number of v filter observations: 0.
+    Number of SN: 3. 
+    Fitting method: chi-squared initial guess passed to MCMC.

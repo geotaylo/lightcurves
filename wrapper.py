@@ -9,14 +9,14 @@ run_sncosmo.py.  Can be edited to suit user.
 > THEN fits SALT2 model to observations.
 """
 
-import run_sncosmo as run
+import run_sncosmo_newskynoise as run
 
 # Number of SN to simulate (if using sncosmo distribution, use 0).
-nSNe = 3
+nSNe = 5
 
 # Path to store info about whole observing set, used by each run.
 # ENSURE / is at end of path!
-parent_folder = 'Honours_data_sets/041118/'
+parent_folder = 'Honours_data_sets/051618/ws_sm/'
 
 # Write observational parameters
 run.write_params(parent_folder, nSNe)
@@ -24,10 +24,10 @@ run.write_params(parent_folder, nSNe)
 # Paths to store individual runs
 # ENSURE / is at end of path!
 child_folder_1 = 'sm_bad_seeing/'
-child_folder_2 = 'sm_good_seeing/'
+#child_folder_2 = 'sm_good_seeing/'
 child_folder_3 = 'kst/'
 child_folder_4 = 'both_bad_seeing/'
-child_folder_5 = 'both_good_seeing/'
+#child_folder_5 = 'both_good_seeing/'
 
 
 # Generates all info about SN and observing parameters, to be used by each
@@ -41,9 +41,9 @@ print'attempting run 1:'
 run1 = run.simulate_lc(parent_folder, child_folder=child_folder_1,
                       scope='sm', follow_up=False)
 
-print'attempting run 2:'
-run2 = run.simulate_lc(parent_folder, child_folder=child_folder_2,
-                      scope='sm', follow_up=True)
+#print'attempting run 2:'
+#run2 = run.simulate_lc(parent_folder, child_folder=child_folder_2,
+#                      scope='sm', follow_up=True)
 
 print'attempting run 3:'
 run3 = run.simulate_lc(parent_folder, child_folder=child_folder_3,
@@ -53,9 +53,9 @@ print 'attempting bad seeing combination'
 run4 = run.combine_scopes(parent_folder, child_folder_1, child_folder_3,
                          child_folder_4, nSNe)
 
-print 'attempting good seeing combination'
-run5 = run.combine_scopes(parent_folder, child_folder_2, child_folder_3,
-                         child_folder_5, nSNe)
+#print 'attempting good seeing combination'
+#run5 = run.combine_scopes(parent_folder, child_folder_2, child_folder_3,
+#                         child_folder_5, nSNe)
 
 
 # Import list of lightcurves from files (if not simulating above).
@@ -100,8 +100,8 @@ run5 = run.combine_scopes(parent_folder, child_folder_2, child_folder_3,
 print'attempting fit 1:'
 run.fit_snlc(run1, parent_folder, child_folder=child_folder_1)
 
-print'attempting fit 2:'
-run.fit_snlc(run2, parent_folder, child_folder=child_folder_2)
+#print'attempting fit 2:'
+#run.fit_snlc(run2, parent_folder, child_folder=child_folder_2)
 
 print'attempting fit 3:'
 kepler_time = run.fit_snlc(run3, parent_folder, child_folder=child_folder_3)
@@ -111,5 +111,5 @@ kepler_time = run.fit_snlc(run3, parent_folder, child_folder=child_folder_3)
 print'attempting fit 4:'
 run.fit_snlc(run4, parent_folder, child_folder=child_folder_4, t0=kepler_time)
 
-print'attempting fit 5:'
-run.fit_snlc(run5, parent_folder, child_folder=child_folder_5, t0=kepler_time)
+#print'attempting fit 5:'
+#run.fit_snlc(run5, parent_folder, child_folder=child_folder_5, t0=kepler_time)
