@@ -1,0 +1,5 @@
+Kepler cadence: 0.25 days. 
+    SkyMapper cadence: well-sampled days (well-sampled is randomly distributed between 1-2 days, poorly-sampled is 4-5 days.)
+    Number of v filter observations: 0.
+    Number of SN: 100. 
+    Fitting method: chi-squared initial guess passed to MCMC.
