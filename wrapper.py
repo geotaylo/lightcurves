@@ -23,39 +23,27 @@ run.write_params(parent_folder, nSNe)
 
 # Paths to store individual runs
 # ENSURE / is at end of path!
-child_folder_1 = 'sm_bad_seeing/'
-#child_folder_2 = 'sm_good_seeing/'
-child_folder_3 = 'kst/'
-child_folder_4 = 'both_bad_seeing/'
-#child_folder_5 = 'both_good_seeing/'
-
+child_folder_1 = 'sm/'
+child_folder_2 = 'kst/'
+child_folder_3 = 'combined/'
 
 # Generates all info about SN and observing parameters, to be used by each
 # light curve simulation and fit.
 # MUST BE RUN BEFORE simulate_lc!
 run.simulate_sn_set(parent_folder, nSNe)
 
-
 # Generates random SN and simulates observed data.
-print'attempting run 1:'
+print'attempting SM simulations:'
 run1 = run.simulate_lc(parent_folder, child_folder=child_folder_1,
                       scope='sm', follow_up=False)
 
-#print'attempting run 2:'
-#run2 = run.simulate_lc(parent_folder, child_folder=child_folder_2,
-#                      scope='sm', follow_up=True)
-
-print'attempting run 3:'
-run3 = run.simulate_lc(parent_folder, child_folder=child_folder_3,
+print'attempting KST simulations:'
+run2 = run.simulate_lc(parent_folder, child_folder=child_folder_2,
                       scope='kst', follow_up=False)
 
-print 'attempting bad seeing combination'
-run4 = run.combine_scopes(parent_folder, child_folder_1, child_folder_3,
-                         child_folder_4, nSNe)
-
-#print 'attempting good seeing combination'
-#run5 = run.combine_scopes(parent_folder, child_folder_2, child_folder_3,
-#                         child_folder_5, nSNe)
+print 'attempting combined simulations'
+run3 = run.combine_scopes(parent_folder, child_folder_1, child_folder_2,
+                         child_folder_3, nSNe)
 
 
 # Import list of lightcurves from files (if not simulating above).
@@ -82,34 +70,13 @@ run4 = run.combine_scopes(parent_folder, child_folder_1, child_folder_3,
 #                    parent_folder+child_folder_3+'observed_lc_5.txt',
 #                  ])
 
-# run4 = run.get_lc([parent_folder+child_folder_4+'observed_lc_1.txt',
-#                    parent_folder+child_folder_4+'observed_lc_2.txt',
-#                    parent_folder+child_folder_4+'observed_lc_3.txt',
-#                    parent_folder+child_folder_4+'observed_lc_4.txt',
-#                    parent_folder+child_folder_4+'observed_lc_5.txt',
-#                  ])
-
-# run5 = run.get_lc([parent_folder+child_folder_5+'observed_lc_1.txt',
-#                     parent_folder+child_folder_5+'observed_lc_2.txt',
-#                     parent_folder+child_folder_5+'observed_lc_3.txt',
-#                     parent_folder+child_folder_5+'observed_lc_4.txt',
-#                     parent_folder+child_folder_5+'observed_lc_5.txt',
-#                   ])
 
 # Fit SALT2 models to list of observed light curves.
-print'attempting fit 1:'
+print'attempting SM fits:'
 run.fit_snlc(run1, parent_folder, child_folder=child_folder_1)
 
-#print'attempting fit 2:'
-#run.fit_snlc(run2, parent_folder, child_folder=child_folder_2)
+print'attempting KST fits:'
+kepler_time = run.fit_snlc(run2, parent_folder, child_folder=child_folder_2)
 
-print'attempting fit 3:'
-kepler_time = run.fit_snlc(run3, parent_folder, child_folder=child_folder_3)
-
-####### 4 and 5 (combined scopes) need kepler time!
-
-print'attempting fit 4:'
-run.fit_snlc(run4, parent_folder, child_folder=child_folder_4, t0=kepler_time)
-
-#print'attempting fit 5:'
-#run.fit_snlc(run5, parent_folder, child_folder=child_folder_5, t0=kepler_time)
+print'attempting combined fits:'
+run.fit_snlc(run3, parent_folder, child_folder=child_folder_3, t0=kepler_time)
