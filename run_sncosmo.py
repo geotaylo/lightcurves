@@ -168,10 +168,12 @@ def get_skynoise(n):
 
         sigma_pixel = exponweib.ppf(percent_new, 26.47111428278329, 1.014405795857852, loc=-16.985179115012222,
                                     scale=9.81027950453267)
+        x = 4*math.pi*sigma_psf*sigma_pixel
 
-        skynoise.append(4*math.pi*sigma_psf*sigma_pixel)
-
-    return skynoise
+        skynoise.append(x)
+    # I have no idea why this comes out as a nested list, so we'll flatten it and ignore it.
+    flat_sn = [item for sublist in skynoise for item in sublist]
+    return flat_sn
 
 
 def write_params(folder, sn):
@@ -295,11 +297,12 @@ def simulate_sn_set(folder, nSNe=0):
         # Skynoise
         # For standard filter set (g, r, i) - used in 'bad seeing'
         sn_all = [get_skynoise(len(t_sm))]
-        sn_gri = sn_all*4
+        # print sn_all
+        sn_gri = sn_all*3
 
         # For extended filter set (g, r, i, v) - used in 'good seeing'
 
-        sn_griv = sn_all*5
+        sn_griv = sn_all*4
 
 
         # KEPLER----------------------------------
