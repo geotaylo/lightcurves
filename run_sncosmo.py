@@ -17,15 +17,12 @@ Requires installation of:
 
 
 """ Important edit notes:
-    - KST cadence currently set to 1 day!
     - SM observable candidate range: RA(0-360), Dec(-90,10)
-    - get_skynoise is pretty garbage.
 """
-
-# REMEMBER t0 is currently held!!!
 
 import os
 import pickle
+from scipy.stats import exponweib
 import math
 import numpy as np
 import random
@@ -50,22 +47,21 @@ from shutil import copyfile
 # SkyMapper observing cadence (days)
 # NOTE: for SM cadence to vary randomly between 1 and 2 days, cad_sm='well-sampled'
 # for SM cadence to vary randomly betwen 4 and 5 days, cad_sm='poorly-sampled'
-# 1 and 4 days, assign cad_sm = 0.
-cad_sm = 5.
+cad_sm = 'well-sampled'
 
 # Kepler observing cadence (6 hours, in days)
 cad_k = 1./4.
 
 # Number of observations in SkyMapper V filter (good seeing, centered around
 # lightcurve peak)
-v_obs = 2
+v_obs = 0
 
 # SkyMapper field of view (square degrees)
 AREA = 5.7
 
 # Skymapper min and max observable redshift
 zmin = 0.001
-zmax = 0.1
+zmax = 0.15
 
 # Possible observing period: all of 2017 (mjd)
 tmin = 57754
@@ -143,46 +139,40 @@ def mu(z):
 
     d_L = LIGHT * (z + 0.5 * (1 - Q0) * z ** 2) / H0
 
-    return (5*np.log10(d_L) + 25)
+    return 5*np.log10(d_L) + 25
 
 
-def get_skynoise(filter, seeing):
+def get_skynoise(n):
     """ Calculates static skynoise (background contribution to flux measurement
         error), assuming seeing-dominated gaussian psf with perfect psf
         photometry.
-        sigma_psf = std. deviation of psf (pixels)
-        sigma_pixel = background noise in single pixel (in counts)
+        sigma_psf = std. deviation of psf (pixels) = seeing
+        sigma_pixel = background noise in single pixel (in counts) = bkgsig
     """
+    skynoise = []
+    for i in range(n):
+        sigma_psf = exponweib.rvs(461.87921971531955, 0.6860198725258686, loc=-0.869494090011727,
+                                  scale=0.43722954355185195, size=1)
 
-    if filter == 'smg':
-        if seeing == 'good':
-            sigma_psf = 1.57
-            sigma_pixel = 24.08
+        # Find probability of distribution giving sigma_psf or less
+        percent = exponweib.cdf(sigma_psf, 461.87921971531955, 0.6860198725258686, loc=-0.869494090011727,
+                                scale=0.43722954355185195)
+
+        # Randomly vary probability by 15%, staying within [0,1]
+        if percent <= 0.15:
+            percent_new = percent + np.random.uniform(-percent, percent)
+        elif percent >= 0.85:
+            percent_new = percent + np.random.uniform(-(1-percent), (1-percent))
         else:
-            sigma_psf = 2.03
-            sigma_pixel = 22.79
+            percent_new = percent + np.random.uniform(-0.15, 0.15)
 
-    if filter == 'smi':
-        if seeing == 'good':
-            sigma_psf = 1.57
-            sigma_pixel = 17.32
-        else:
-            sigma_psf = 2.28
-            sigma_pixel = 13.54
+        sigma_pixel = exponweib.ppf(percent_new, 26.47111428278329, 1.014405795857852, loc=-16.985179115012222,
+                                    scale=9.81027950453267)
 
-    if filter == 'smr':
-        if seeing == 'good':
-            sigma_psf = 2.17
-            sigma_pixel = 8.45
-        else:
-            sigma_psf = 1.95
-            sigma_pixel = 1.25
+        skynoise.append(4*math.pi*sigma_psf*sigma_pixel)
 
-    if filter == 'smv':
-        sigma_psf = 1.96
-        sigma_pixel = 6.23
+    return skynoise
 
-    return 4*math.pi*sigma_psf*sigma_pixel
 
 def write_params(folder, sn):
     """ Writes observational parameters to a file for reference"""
@@ -192,12 +182,12 @@ def write_params(folder, sn):
     pf = open(p_file, 'w')
     pf.write('Kepler cadence: %s days. \n\
     SkyMapper cadence: %s days (well-sampled is randomly distributed between 1-2 days, poorly-sampled is 4-5 days.)\n\
-    Number of v filter observations: %s.\n\
     Number of SN: %s. \n\
     Fitting method: chi-squared initial guess passed to MCMC.'\
-             % (cad_k, cad_sm, v_obs, sn))
+             % (cad_k, cad_sm, sn))
 
     pf.close()
+
 
 # A: GENERATING SET OF SUPERNOVAE ---------------------------------------------
 
@@ -222,7 +212,7 @@ def simulate_sn_set(folder, nSNe=0):
         z = np.random.uniform(zmin, zmax, size=nSNe)
         print 'Obtained %s' % nSNe + ' redshifts from uniform distribution. \n'
 
-    # t0 = time at lightcurve peak (mjd).
+    # t0 = time at light-curve peak (mjd).
     t0 = np.random.uniform(tmin, tmax, nSNe)
 
     # c = colour
@@ -231,12 +221,13 @@ def simulate_sn_set(folder, nSNe=0):
     # x1 = stretch
     x1 = 3 * np.random.randn(nSNe)
 
-    # x0 = amplitude (I think...)
+    # x0 = scaling factor
     for i in range(nSNe):
         x0 = 10 ** ((29.69 - mu(z[i])) / 2.5)
         p = {'z': z[i], 't0': t0[i], 'x0': x0, 'x1': x1[i], 'c': c[i]}
         params.append(p)
 
+    # Galactic coordinates
     coords = get_coords(nSNe)
 
     # Observing parameters ----------------------------------------------
@@ -253,7 +244,7 @@ def simulate_sn_set(folder, nSNe=0):
     n_obs_sm = []
     n_obs_k = []
 
-    # Randomise SkyMapper cadence
+    # Get SkyMapper cadence
     global cad_sm
 
     for t in range(nSNe):
@@ -281,9 +272,8 @@ def simulate_sn_set(folder, nSNe=0):
                 t_sm.append(time_hold)
                 time_hold = time_hold + random.randint(4, 5)
         else:
-            cad_sm_hold = [cad_sm] * nSNe
-            t_sm = (params[t].get('t0')
-                    + np.arange(td_sm, td_sm + to_sm, cad_sm_hold[t])).tolist()
+            raise ValueError('Invalid SkyMapper cadence.  Please use \'well-sampled\' (1-2 days) or \'poorly-sampled\' '
+                             '(4-5 days).')
 
         n_obs_sm.append(len(t_sm))
         time_sm.append(t_sm)
@@ -304,17 +294,12 @@ def simulate_sn_set(folder, nSNe=0):
 
         # Skynoise
         # For standard filter set (g, r, i) - used in 'bad seeing'
-        sn_g_bad = [get_skynoise('smg', 'bad')] * len(t_sm)
-        sn_i_bad = [get_skynoise('smi', 'bad')] * len(t_sm)
-        sn_r_bad = [get_skynoise('smr', 'bad')] * len(t_sm)
-        sn_gri = [sn_g_bad, sn_i_bad, sn_r_bad]
+        sn_all = [get_skynoise(len(t_sm))]
+        sn_gri = sn_all*4
 
         # For extended filter set (g, r, i, v) - used in 'good seeing'
-        sn_g_good = [get_skynoise('smg', 'good')] * len(t_sm)
-        sn_i_good = [get_skynoise('smi', 'good')] * len(t_sm)
-        sn_r_good = [get_skynoise('smr', 'good')] * len(t_sm)
-        sn_v_good = [get_skynoise('smv', 'good')] * v_obs
-        sn_griv = [sn_g_good, sn_i_good, sn_r_good, sn_v_good]
+
+        sn_griv = sn_all*5
 
 
         # KEPLER----------------------------------
@@ -362,7 +347,7 @@ def simulate_sn_set(folder, nSNe=0):
 def simulate_lc(parent_folder, child_folder='TestFiles/',
                 scope='sm', follow_up=False
                 ):
-    """ Simulate 'observed' light curves.
+    """ Simulate 'observed' light-curves.
         Defaults:  scope = 'sm' - which telescope to use in simulations.
                             Accepted values are 'sm' or 'kst'
                    folder = 'Testfiles/' (path to store outputs)
@@ -370,11 +355,11 @@ def simulate_lc(parent_folder, child_folder='TestFiles/',
                     observing properties
     """
 
-    ### HEY GRAWG IS IT EASIER IF THESE ARE GLOBAL??
     # Maintenance.
     child_folder = parent_folder + child_folder
     filters.register_filters()
     ensure_dir(child_folder)
+
     bands = []
     lcs = []
     time_sm = []
@@ -394,12 +379,11 @@ def simulate_lc(parent_folder, child_folder='TestFiles/',
             bands = ['smg', 'smr', 'smi', 'smv']
         else:
             bands = ['smg', 'smr', 'smi']
+    elif scope == 'kst':
+        bands = ['kst']
     else:
-        if scope == 'kst':
-            bands = ['kst']
-        else:
-            print 'Hey buddy, that\'s not a real telescope.  Please enter ' \
-                  'scope = \'sm\' for SkyMapper, or \'kst\' for Kepler. '
+        print 'Hey, that\'s not a real telescope!  Please enter ' \
+              'scope = \'sm\' for SkyMapper, or \'kst\' for Kepler. '
 
     # Load properties of simulation set
     sn_dict = load_obj(parent_folder+'sn_dict')
@@ -469,7 +453,7 @@ def simulate_lc(parent_folder, child_folder='TestFiles/',
             if follow_up:
                 skynoise = sn_griv[t]
             else:
-                skynoise = zp_gri[t]
+                skynoise = sn_gri[t]
 
         else:
             o_t.extend(time_k[t])
