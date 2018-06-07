@@ -457,11 +457,11 @@ def simulate_lc(parent_folder, child_folder='TestFiles/',
             if follow_up:
                 #skynoise = sn_griv[t]
                 # TEST
-                skynoise = [100]*n_obs_sm*4
+                skynoise = [100]*n_obs_sm[t]*4
             else:
                 #skynoise = sn_gri[t]
                 # TEST
-                skynoise = [100] * n_obs_k * 3
+                skynoise = [100] * n_obs_sm[t] * 3
 
         else:
             o_t.extend(time_k[t])
