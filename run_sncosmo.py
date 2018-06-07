@@ -47,6 +47,7 @@ from shutil import copyfile
 # SkyMapper observing cadence (days)
 # NOTE: for SM cadence to vary randomly between 1 and 2 days, cad_sm='well-sampled'
 # for SM cadence to vary randomly betwen 4 and 5 days, cad_sm='poorly-sampled'
+# This can also be changed using set_sm_cadence()
 cad_sm = 'well-sampled'
 
 # Kepler observing cadence (6 hours, in days)
@@ -451,9 +452,13 @@ def simulate_lc(parent_folder, child_folder='TestFiles/',
 
             # Sets skynoise
             if follow_up:
-                skynoise = sn_griv[t]
+                #skynoise = sn_griv[t]
+                # TEST
+                skynoise = [100]*n_obs_sm*4
             else:
-                skynoise = sn_gri[t]
+                #skynoise = sn_gri[t]
+                # TEST
+                skynoise = [100] * n_obs_k * 3
 
         else:
             o_t.extend(time_k[t])

@@ -9,23 +9,21 @@ run_sncosmo.py.  Can be edited to suit user.
 > THEN fits SALT2 model to observations.
 """
 
-import run_sncosmo_newskynoise as run
+import run_sncosmo as run
 
 # Number of SN to simulate (if using sncosmo distribution, use 0).
 nSNe = 5
 
 # Path to store info about whole observing set, used by each run.
 # ENSURE / is at end of path!
-parent_folder = 'Honours_data_sets/051618/ws_sm/'
-
-# Write observational parameters
-run.write_params(parent_folder, nSNe)
+parent_folder = 'Honours_data_sets/060818/ws_sm/sn100/'
 
 # Paths to store individual runs
 # ENSURE / is at end of path!
-child_folder_1 = 'sm/'
+child_folder_1 = 'sm-ws/'
 child_folder_2 = 'kst/'
-child_folder_3 = 'combined/'
+child_folder_3 = 'combined-ws/'
+
 
 # Generates all info about SN and observing parameters, to be used by each
 # light curve simulation and fit.
@@ -33,17 +31,23 @@ child_folder_3 = 'combined/'
 run.simulate_sn_set(parent_folder, nSNe)
 
 # Generates random SN and simulates observed data.
-print'attempting SM simulations:'
+print 'attempting well-sampled SM simulations:'
+
 run1 = run.simulate_lc(parent_folder, child_folder=child_folder_1,
                       scope='sm', follow_up=False)
 
+print 'attempting poorly-sampled'
 print'attempting KST simulations:'
 run2 = run.simulate_lc(parent_folder, child_folder=child_folder_2,
                       scope='kst', follow_up=False)
 
-print 'attempting combined simulations'
+print 'attempting well-sampled SM + KST combined simulations'
 run3 = run.combine_scopes(parent_folder, child_folder_1, child_folder_2,
                          child_folder_3, nSNe)
+
+# Write observational parameters
+run.write_params(parent_folder, nSNe)
+
 
 
 # Import list of lightcurves from files (if not simulating above).
