@@ -85,8 +85,8 @@ H0 = 70.00
 dust = sncosmo.CCM89Dust()
 
 # Change path to location of dustmaps
-dustmap = sfdmap.SFDMap("/home/georgie/sfddata-master")#thinkpad
-                        #("/home/gtaylor/sfddata-master")#surface
+#dustmap = sfdmap.SFDMap("/home/georgie/sfddata-master")#thinkpad
+dustmap = sfdmap.SFDMap("/home/gtaylor/sfddata-master")#motley
 
 
 # SALT2 MODEL TEMPLATE --------------------------------------------------------
