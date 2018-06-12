@@ -967,22 +967,22 @@ def plot_wrap_er(smb_diffs2, kst_diffs2, bothb_diffs2, parent):
     return
 
 
-parent = 'Honours_data_sets/051618/2/ps_sm/'
+parent = 'Honours_data_sets/060818/ws_sm/sn300/'
 
 
-smb_fails2, smb_diffs2 = analyse(parent + 'sm_bad_seeing/',
-                    'sm_bad_seeing', wipe_fails=True)
+smb_fails2, smb_diffs2 = analyse(parent + 'sm-ws/',
+                    'skymapper', wipe_fails=True)
 kst_fails2, kst_diffs2 = analyse(parent + 'kst/', 'kst',
                    wipe_fails=True)
-bothb_fails2, bothb_diffs2 = analyse(parent + 'both_bad_seeing/',
-                   'both_bad_seeing', fails=kst_fails2, wipe_fails=True)
-plot_wrap(smb_diffs2, kst_diffs2, bothb_diffs2, parent)
+bothb_fails2, bothb_diffs2 = analyse(parent + 'combined-ws/',
+                   'combined', fails=kst_fails2, wipe_fails=True)
+# plot_wrap(smb_diffs2, kst_diffs2, bothb_diffs2, parent)
 
 
-smb_fails_er, smb_diffs_er = analyse_errors(parent + 'sm_bad_seeing/',
-                    'sm_bad_seeing', wipe_fails=True)
+smb_fails_er, smb_diffs_er = analyse_errors(parent + 'sm-ws/',
+                    'skymapper', wipe_fails=True)
 kst_fails_er, kst_diffs_er = analyse_errors(parent + 'kst/', 'kst',
                    wipe_fails=True)
-bothb_fails_er, bothb_diffs_er = analyse_errors(parent + 'both_bad_seeing/',
-                   'both_bad_seeing', fails=kst_fails_er, wipe_fails=True)
-plot_wrap_er(smb_diffs_er, kst_diffs_er, bothb_diffs_er,  parent)
+bothb_fails_er, bothb_diffs_er = analyse_errors(parent + 'combined-ws/',
+                   'combined', fails=kst_fails_er, wipe_fails=True)
+# plot_wrap_er(smb_diffs_er, kst_diffs_er, bothb_diffs_er,  parent)
