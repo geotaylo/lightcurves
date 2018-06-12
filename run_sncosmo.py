@@ -85,8 +85,8 @@ H0 = 70.00
 dust = sncosmo.CCM89Dust()
 
 # Change path to location of dustmaps
-#dustmap = sfdmap.SFDMap("/home/georgie/sfddata-master")#thinkpad
-dustmap = sfdmap.SFDMap("/home/gtaylor/sfddata-master")#motley
+dustmap = sfdmap.SFDMap("/home/georgie/sfddata-master")#thinkpad
+#dustmap = sfdmap.SFDMap("/home/gtaylor/sfddata-master")#motley
 
 
 # SALT2 MODEL TEMPLATE --------------------------------------------------------
@@ -457,11 +457,11 @@ def simulate_lc(parent_folder, child_folder='TestFiles/',
             if follow_up:
                 #skynoise = sn_griv[t]
                 # TEST
-                skynoise = [100]*n_obs_sm[t]*4
+                skynoise = [5000]*n_obs_sm[t]*4
             else:
                 #skynoise = sn_gri[t]
                 # TEST
-                skynoise = [[100] * n_obs_sm[t] * 3]
+                skynoise = [[5000] * n_obs_sm[t] * 3]
 
         else:
             o_t.extend(time_k[t])
@@ -580,9 +580,11 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/', t0=0):
     # Create text file for storing 'fitted' parameters for each SN.
     fitted_file = folder + 'fitted_parameters.txt'
     error_file = folder + 'error_sn.txt'
+    snr_error_file = folder + 'snr_error_sn.txt'
     accuracy_file = folder + 'fitted_errors.txt'
     ff = open(fitted_file, 'w')
     ef = open(error_file, 'w')
+    snrf = open(snr_error_file, 'w')
     af = open(accuracy_file, 'w')
     nSNe = len(lightcurve)
 
@@ -634,12 +636,23 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/', t0=0):
             af.write('SN%s: c:0 t0:0 x0:0 x1:0\n' %(i+1))
             explosion_time.append(0)
 
-
             pass
+        except sncosmo.fitting.DataQualityError, e:
+            print 'Error:', e
+
+            # List skipped SN in error file
+            snrf.write('SN%s: \n' % (i + 1))
+
+            # Add fitted parameters as 0 for all (to fix indexing issue when using fitted t0 values)
+            ff.write('SN%s: c:0 t0:0 x0:0 x1:0 z:0 \n' % (i + 1))
+            af.write('SN%s: c:0 t0:0 x0:0 x1:0\n' % (i + 1))
+            explosion_time.append(0)
+
 
     ff.close()
     af.close()
     ef.close()
+    snrf.close()
 
     print explosion_time
     print 'Process complete.'

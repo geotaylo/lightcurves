@@ -16,13 +16,13 @@ nSNe = 5
 
 # Path to store info about whole observing set, used by each run.
 # ENSURE / is at end of path!
-parent_folder = 'Honours_data_sets/060818/ws_sm/sn100/'
+parent_folder = 'Honours_data_sets/061218/ws_sm/sn5000/'
 
 # Paths to store individual runs
 # ENSURE / is at end of path!
-child_folder_1 = 'sm-ws/'
+child_folder_1 = 'sm/'
 child_folder_2 = 'kst/'
-child_folder_3 = 'combined-ws/'
+child_folder_3 = 'combined/'
 
 
 # Generates all info about SN and observing parameters, to be used by each
@@ -66,7 +66,7 @@ run.write_params(parent_folder, nSNe)
 #                     parent_folder+child_folder_2+'observed_lc_4.txt',
 #                     parent_folder+child_folder_2+'observed_lc_5.txt',
 #                   ])
-
+#
 # run3 = run.get_lc([parent_folder+child_folder_3+'observed_lc_1.txt',
 #                    parent_folder+child_folder_3+'observed_lc_2.txt',
 #                    parent_folder+child_folder_3+'observed_lc_3.txt',
