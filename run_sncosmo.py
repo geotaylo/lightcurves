@@ -99,6 +99,9 @@ model = sncosmo.Model(source='salt2',
 
 # UTILITY FNS -----------------------------------------------------------------
 
+# Sets random number seed to system time
+random.seed()
+
 def save_obj(obj, name):
     """ Utility function for saving dictionary 'obj' as 'name'. """
 
@@ -298,7 +301,6 @@ def simulate_sn_set(folder, nSNe=0):
         # Skynoise
         # For standard filter set (g, r, i) - used in 'bad seeing'
         sn_all = [get_skynoise(len(t_sm))]
-        # print sn_all
         sn_gri = sn_all*3
 
         # For extended filter set (g, r, i, v) - used in 'good seeing'
@@ -455,13 +457,13 @@ def simulate_lc(parent_folder, child_folder='TestFiles/',
 
             # Sets skynoise
             if follow_up:
-                #skynoise = sn_griv[t]
+                skynoise = sn_griv[t]
                 # TEST
-                skynoise = [5000]*n_obs_sm[t]*4
+                #skynoise = [5000]*n_obs_sm[t]*4
             else:
-                #skynoise = sn_gri[t]
+                skynoise = sn_gri[t]
                 # TEST
-                skynoise = [[5000] * n_obs_sm[t] * 3]
+                #skynoise = [[5000] * n_obs_sm[t] * 3]
 
         else:
             o_t.extend(time_k[t])
@@ -654,7 +656,6 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/', t0=0):
     ef.close()
     snrf.close()
 
-    print explosion_time
     print 'Process complete.'
 
     return explosion_time
