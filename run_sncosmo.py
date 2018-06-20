@@ -748,7 +748,7 @@ def fit_util_lc(data, index, folder, coords_in, z, t0):
     pp = PdfPages(plotname)
 
     sncosmo.plot_lc(data, model=fitted_model,
-                    errors=result.errors, fname=pp, format='pdf'
+                    errors=result.errors, fname=pp, format='png'
                     )
 
     pp.close()
