@@ -28,6 +28,7 @@ import numpy as np
 import random
 
 from astropy.table import Table, vstack
+import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
 import sfdmap
@@ -668,7 +669,7 @@ def fit_util_lc(data, index, folder, coords_in, z, t0):
 
     print 'Fitting light curve for supernova %s' % index
 
-    plotname = folder + 'fitted_lc_%s.pdf' % index
+    plotname = folder + 'fitted_lc_%s.png' % index
 
     ebv = dustmap.ebv(coords_in[0], coords_in[1])
 
@@ -745,13 +746,17 @@ def fit_util_lc(data, index, folder, coords_in, z, t0):
 
     fitted_errors = result.errors
 
-    pp = PdfPages(plotname)
+    # Use PdfPages if saving as a pdf (ensure to change plotname)
+    #pp = PdfPages(plotname)
 
-    sncosmo.plot_lc(data, model=fitted_model,
-                    errors=result.errors, fname=pp, format='png'
+    fig = sncosmo.plot_lc(data, model=fitted_model,
+                    errors=result.errors, format='png'
                     )
 
-    pp.close()
+    plt.savefig(plotname)
+    plt.close(fig)
+
+    #pp.close()
 
     print 'Fitted light curve plotted in ' + plotname
 
