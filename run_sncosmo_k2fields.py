@@ -65,12 +65,6 @@ v_obs = 0
 zmin = 0.001
 zmax = 0.15
 
-# Possible observing period: a single Kepler campaign, with an assumed duration of 80 days (the average value).
-now = Time([str(datetime.date.today())], format='iso', scale='utc')
-now_mjd = now.mjd
-tmin = now_mjd[0]
-tmax = tmin+80
-
 # Fitting method (1 = chisquared, 2 = mcmc, 3 = nest)
 # NOTE - this isn't currently being used, we use a combination of chisquared and mcmc right now.
 fit_method = 2
@@ -209,10 +203,9 @@ def write_params(folder, sn):
     p_file = folder + 'observing_parameters.txt'
     pf = open(p_file, 'w')
     pf.write('Kepler cadence: %s days. \n\
-    SkyMapper cadence: %s days (well-sampled is randomly distributed between 1-2 days, poorly-sampled is 4-5 days.)\n\
     Number of SN: %s. \n\
     Fitting method: chi-squared initial guess passed to MCMC.'\
-             % (cad_k, cad_sm, sn))
+             % (cad_k, sn))
 
     pf.close()
 
@@ -375,6 +368,11 @@ def simulate_sn_set(folder, nSNe=0, campaign=0):
 
     else:
         # Set number of SN and uniformly generate redshift (for statistical sample)
+        # Possible observing period: 365 days from today's date in mjd.
+        now = Time([str(datetime.date.today())], format='iso', scale='utc')
+        now_mjd = now.mjd
+        tmin = now_mjd[0]
+        tmax = tmin + 365
         z = np.random.uniform(zmin, zmax, size=nSNe)
         # Equatorial coordinates
         coords = get_coords(nSNe)
