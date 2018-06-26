@@ -752,10 +752,12 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/', t0=0):
     error_file = folder + 'error_sn.txt'
     snr_error_file = folder + 'snr_error_sn.txt'
     accuracy_file = folder + 'fitted_errors.txt'
+    valueError_file = folder + 'valueError_error_params.txt'
     ff = open(fitted_file, 'w')
     ef = open(error_file, 'w')
     snrf = open(snr_error_file, 'w')
     af = open(accuracy_file, 'w')
+    vf = open(valueError_file, 'w')
     nSNe = len(lightcurve)
 
     # Get coordinates
@@ -807,6 +809,25 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/', t0=0):
             explosion_time.append(0)
 
             pass
+        except ValueError, e:  # working around NaN thrown with garbage emcee fitter.
+            print 'Error:',e
+
+            coords_out = [el[i] for el in coords_in]
+            z = params[i]['z']
+
+            # List skipped SN in error file
+            ef.write('SN%s: \n' %(i+1))
+
+            # Add fitted parameters as 0 for all (to fix indexing issue when using fitted t0 values)
+            ff.write('SN%s: c:0 t0:0 x0:0 x1:0 z:0 \n' %(i+1))
+            af.write('SN%s: c:0 t0:0 x0:0 x1:0\n' %(i+1))
+            explosion_time.append(0)
+
+            # Write params to try track source of value error
+            # Not 100% yet - probably needs to be inside util_lc instead.
+            vf.write('SN%s: c:0 t0:0 x0:0 x1:0 z:%s \n' %(i+1, z))
+
+            pass
         except sncosmo.fitting.DataQualityError, e:
             print 'Error:', e
 
@@ -823,6 +844,7 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/', t0=0):
     af.close()
     ef.close()
     snrf.close()
+    vf.close()
 
     print 'Process complete.'
 
