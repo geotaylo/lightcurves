@@ -12,11 +12,14 @@ run_sncosmo.py.  Can be edited to suit user.
 import run_sncosmo_k2fields as run
 
 # Number of SN to simulate (if using sncosmo distribution, use 0).
-nSNe = 1000
+nSNe = 10
+
+# Kepler campaign (if using SNCosmo dist.)
+campaign = 0
 
 # Path to store info about whole observing set, used by each run.
 # ENSURE / is at end of path!
-parent_folder = 'Honours_data_sets/062218/1000set'
+parent_folder = 'Honours_data_sets/test/'
 
 # Paths to store individual runs
 # ENSURE / is at end of path!
@@ -30,7 +33,7 @@ child_folder_5 = 'combined_ps/'
 # Generates all info about SN and observing parameters, to be used by each
 # light curve simulation and fit.
 # MUST BE RUN BEFORE simulate_lc!
-run.simulate_sn_set(parent_folder, nSNe)
+nSNe = run.simulate_sn_set(parent_folder, nSNe, campaign)
 
 # Generates random SN and simulates observed data.
 print 'attempting well-sampled SM simulations:'

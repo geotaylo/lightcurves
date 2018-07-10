@@ -364,6 +364,7 @@ def simulate_sn_set(folder, nSNe=0, campaign=0):
         nSNe = len(z)
         # Equatorial coordinates
         coords = get_coords(nSNe, ra, dec)
+        print coords
         print 'Obtained %s' % nSNe + ' redshifts from sncosmo distribution. \n'
 
     else:
@@ -497,7 +498,7 @@ def simulate_sn_set(folder, nSNe=0, campaign=0):
                 'Observations': observations, 'nSNe': nSNe}
     save_obj(dict_out, folder + 'sn_dict')
     print 'Properties of simulation saved in %ssn_dict.pkl' % folder
-    return
+    return nSNe
 
 
 # B: SIMULATING OBSERVATIONS --------------------------------------------------
