@@ -7,19 +7,19 @@ import run_sncosmo_k2fields as run
 
 # Path to store info about whole observing set, used by each run.
 # ENSURE / is at end of path!
-parent_folder = 'Real_data/KEGS/2017i/'
+parent_folder = 'Real_data/KEGS/2017k/'
 
 # Names of SN
-name = '2017i'
+name = '2017k'
 
 # List of redshifts
-z = [0.094]
+z = [0.13182]
 
 # List of RA (in J2000 frame and degrees)
-ra = [run.dms_to_deg(42.,42.,4.)]
+ra = [run.dms_to_deg(1.,58.,6.)]
 
 # List of dec (in J2000 frame and degrees)
-dec = [run.dms_to_deg(13.,58.,04.)]
+dec = [run.dms_to_deg(13.,46.,44.2)]
 
 # Make SN dictionary
 run.make_sn_dict(parent_folder, z, ra, dec)

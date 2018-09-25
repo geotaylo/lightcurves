@@ -23,34 +23,19 @@ dustmap = sfdmap.SFDMap("C:\Users\gltay\Documents\ANU 2018\Honours Project\light
 folder = 'Real_data/KEGS/'
 
 # Name of SN
-name = '2017k'
+name = '2018j'
 
 # redshift (from K2 spreadsheet)
-z = 0.13182
+z = 0.01
 
 # Count offset - to subtract for galaxy.  Estimated from calibrated ground-based photometry on K2 drive.
-galaxy_counts = 1288
+galaxy_counts = 9330
 
 # skiplines - check data file for each SN (inconsistent).
-sl = [0,2]
+sl = [1]
 
 # Coordinate frame
 frame = 'fk5j2000'
-
-# ra, in degrees, minutes, seconds
-ra_d = 01.
-ra_m = 58.
-ra_s = 06.
-
-ra = run.dms_to_deg(ra_d, ra_m, ra_s)
-
-# dec, in degrees, minutes, seconds
-dec_d = 13.
-dec_m = 46.
-dec_s = 44.2
-
-dec = run.dms_to_deg(dec_d, dec_m, dec_s)
-
 
 
 # CODE -----------------------------------------------------------------------------------------------------------------
@@ -61,7 +46,7 @@ filters.register_filters()
 # Read in csv and convert to ascii -------------------------------------------------------------------------------------
 
 # Name of file to convert - eventually loop over all files in directory
-target = folder+name+'.csv'
+target = folder+name+'/'+name+'.csv'
 
 # Load data frame
 # Check skip rows are correct!
@@ -113,48 +98,4 @@ t['flux_err'] = np.abs(t['flux_err']*(100-sky_percent)/100)
 
 
 # Maybe save in different folder?
-sncosmo.write_lc(t, folder+name+'_lc.txt')
-
-# Fitting --------------------------------------------------------------------------------------------------------------
-
-# run1 = run.get_lc([folder+name+'_lc.txt')
-# print'attempting well-sampled SM fits:'
-# run.fit_snlc(run1, parent_folder, child_folder=child_folder_1)
-dat = sncosmo.read_lc(folder+name+'_lc.txt')
-
-# create a model
-model = sncosmo.Model(source='salt2',
-                      effects=[dust, dust],
-                      effect_names=['host', 'mw'],
-                      effect_frames=['rest', 'obs'])
-
-
-# Fit for dust
-ebv = dustmap.ebv(ra, dec, frame = frame, unit='degree')
-
-model.set(mwebv=ebv)
-
-
-# Don't fit redshift - it's known
-model.set(z=z, x0=0.1, x1=0.1, c=0.1)
-
-result, fitted_model = sncosmo.fit_lc(
-    dat, model,
-    ['t0', 'x0', 'x1', 'c'],  # parameters of model to vary,
-    # bounds={'z':(0.1,0.15)},
-    guess_amplitude=False,
-    minsnr=3)  # bounds on parameters (if any)
-
-fig = sncosmo.plot_lc(dat, model=fitted_model,
-                    errors=result.errors, format='png'
-                    )
-
-plt.savefig(folder+name+'_fit.png')
-plt.close(fig)
-
-fig2 = sncosmo.plot_lc(dat, format='png')
-
-plt.savefig(folder+name+'_data.png')
-plt.close(fig2)
-
-
+sncosmo.write_lc(t, folder+name+'/'+name+'_lc.txt')
