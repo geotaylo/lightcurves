@@ -83,7 +83,8 @@ H0 = 70.00
 dust = sncosmo.CCM89Dust()
 
 # Change path to location of dustmaps
-dustmap = sfdmap.SFDMap("/home/georgie/sfddata-master")#thinkpad
+dustmap = sfdmap.SFDMap("C:\Users\gltay\Documents\ANU 2018\Honours Project\lightcurves\sfddata-master\sfddata-master")#surface
+#dustmap = sfdmap.SFDMap("/home/georgie/sfddata-master")#thinkpad
 #dustmap = sfdmap.SFDMap("/home/gtaylor/sfddata-master")#motley
 
 
@@ -123,7 +124,7 @@ def ensure_dir(f):
 
 
 def get_coords(nSNe, ra_range=0, dec_range=0):
-    """ Generates random equatorial coordinates for SN """
+    """ Generates random j2000 degree coords for SN """
 
     if ra_range == 0:
         # Right ascension
@@ -149,6 +150,12 @@ def mu(z):
     d_L = LIGHT * (z + 0.5 * (1 - Q0) * z ** 2) / H0
 
     return 5*np.log10(d_L) + 25
+
+
+def dms_to_deg(d,m,s):
+    """ converts degrees, minutes, seconds to degrees"""
+    x = d + (m/60.) + (s/3600.)
+    return x
 
 
 def get_skynoise(n):
@@ -498,6 +505,38 @@ def simulate_sn_set(folder, nSNe=0, campaign=0):
                 'Observations': observations, 'nSNe': nSNe}
     save_obj(dict_out, folder + 'sn_dict')
     print 'Properties of simulation saved in %ssn_dict.pkl' % folder
+    return nSNe
+
+def make_sn_dict(folder, redshift, ra, dec):
+
+    """ Parallel method to simulate_sn_set in the main build, to produce a dictionary of SN properties for real data
+        redshift = list of redshifts
+        ra = list of right ascensions
+        dec = list of declinations
+        make sure the order is correct :)
+    """
+
+    ensure_dir(folder)
+
+    params = []
+    observations = []
+
+    # Supernova parameters ----------------------------------------------
+
+    nSNe = len(redshift)
+    # z = redshift
+    coords = [ra,dec]
+
+    # This is redundant, just in for now for consistency with real code
+    for i in range(nSNe):
+        p = {'z': redshift[i]}
+        params.append(p)
+
+    # Save as dictionary ----------------------------------------------
+    dict_out = {'Parameters': params, 'Coordinates': coords,
+                'Observations': observations, 'nSNe': nSNe}
+    save_obj(dict_out, folder + 'sn_dict')
+    print 'Properties of SN saved in %ssn_dict.pkl' % folder
     return nSNe
 
 
@@ -859,9 +898,9 @@ def fit_util_lc(data, index, folder, coords_in, z, t0):
 
     print 'Fitting light curve for supernova %s' % index
 
-    plotname = folder + 'fitted_lc_%s.png' % index
+    plotname = folder + 'fitted_lc_%s' % index
 
-    ebv = dustmap.ebv(coords_in[0], coords_in[1])
+    ebv = dustmap.ebv(coords_in[0], coords_in[1], frame = 'fk5j2000', unit='degree')
 
     model.set(mwebv=ebv)
 
@@ -877,6 +916,8 @@ def fit_util_lc(data, index, folder, coords_in, z, t0):
                                            ['t0', 'x0', 'x1', 'c'],
                                            minsnr=3.0,
                                            )
+
+
 
         result, fitted_model = mcmc_fit(data, fitted_model_1,
                                             # Parameters of model to vary.
@@ -938,11 +979,18 @@ def fit_util_lc(data, index, folder, coords_in, z, t0):
     # Use PdfPages if saving as a pdf (ensure to change plotname)
     #pp = PdfPages(plotname)
 
+    fig = sncosmo.plot_lc(data, model=fitted_model_1,
+                          errors=result_1.errors, format='png'
+                          )
+
+    plt.savefig(plotname + '_chi.png')
+    plt.close(fig)
+
     fig = sncosmo.plot_lc(data, model=fitted_model,
                     errors=result.errors, format='png'
                     )
 
-    plt.savefig(plotname)
+    plt.savefig(plotname +'_mcmc.png')
     plt.close(fig)
 
     #pp.close()

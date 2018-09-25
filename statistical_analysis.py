@@ -68,6 +68,13 @@ def analyse(folder, set, fails=[], wipe_fails=False):
             fitted_x1.append(float(row[4].replace('x1:','')))
             fitted_z.append(float(row[5].replace('z:','')))
 
+    # Double check for missed errors! - need to figure out why these are getting skipped
+    for i in range(len(fitted_c)):
+        if fitted_c[i] == 0 and fitted_t0[i] == 0 and fitted_x0[i] == 0 and fitted_x1[i] ==0 and fitted_z[i] ==0:
+            if i+1 not in error_set:
+                error_set.append(i+1)
+    error_set.sort()
+
     true_c = []
     true_t0 = []
     true_x0 = []
@@ -215,6 +222,12 @@ def analyse_errors(folder, set, fails=[], wipe_fails=False):
             fitted_x0.append(float(row[3].replace('x0:','')))
             fitted_x1.append(float(row[4].replace('x1:','')))
 
+    for i in range(len(fitted_c)):
+        if fitted_c[i] == 0 and fitted_t0[i] == 0 and fitted_x0[i] == 0 and fitted_x1[i] ==0:
+            if i+1 not in error_set:
+                error_set.append(i+1)
+    error_set.sort()
+
     # Create sn_num array
     sn_num = range(1, len(fitted_c)+1)
     for i in error_set:
@@ -277,12 +290,15 @@ def plot_diffs(scopes, labels, colour, folder):
     """
 
     # C - set to [-0.2,0.2] with bins of 0.01
+    crange = 0.2
+    trange = 0.2
+    x1range = 0.2
     try:
         figa, (ax1, ax2, ax3) = plt.subplots(3, sharex=True, sharey=True)
 
         for i in range(0, len(scopes)):
             abs_c = scopes[i][0]
-            trimmed_c = [x for x in abs_c if x >= -0.2 and x <= 0.2]
+            trimmed_c = [x for x in abs_c if x >= -crange and x <= crange]
             bins_c = np.arange(min(trimmed_c), max(trimmed_c) + 0.01, 0.01)
             data = ax1.hist(trimmed_c, bins_c, histtype='step', color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_c)))
 
@@ -292,7 +308,7 @@ def plot_diffs(scopes, labels, colour, folder):
 
             popt, pcov = curve_fit(f, x, y)
 
-            x_fit = py.linspace(-2, 2, 200)
+            x_fit = py.linspace(-crange, crange, 200)
             y_fit = f(x_fit, *popt)
 
             ax2.plot(x_fit, y_fit, lw=2, color=colour[i])
@@ -308,7 +324,7 @@ def plot_diffs(scopes, labels, colour, folder):
         ax1.set_title('Colour (c) Residuals')
         plt.xlabel('Residual (true - fitted value of c)')
         plt.ylabel('Frequency')
-        plt.xlim(-0.2, 0.2)
+        plt.xlim(-crange, crange)
         ax1.legend(fontsize = 'x-small')
         figa.savefig(folder + 'colour.png')
         plt.close()
@@ -322,7 +338,7 @@ def plot_diffs(scopes, labels, colour, folder):
 
         for i in range(0, len(scopes)):
             abs_t0 = scopes[i][1]
-            trimmed_t0 = [x for x in abs_t0 if x >= -0.25 and x <= .25]
+            trimmed_t0 = [x for x in abs_t0 if x >= -trange and x <= trange]
             bins_t0 = np.arange(min(trimmed_t0), max(trimmed_t0) + 0.02, 0.02)
             data = ax4.hist(trimmed_t0, bins_t0, histtype='step', color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_t0)))
 
@@ -332,7 +348,7 @@ def plot_diffs(scopes, labels, colour, folder):
 
             popt, pcov = curve_fit(f, x, y)
 
-            x_fit = py.linspace(-.25, .25, 200)
+            x_fit = py.linspace(-trange, trange, 200)
             y_fit = f(x_fit, *popt)
 
             ax5.plot(x_fit, y_fit, lw=2, color=colour[i])
@@ -348,7 +364,7 @@ def plot_diffs(scopes, labels, colour, folder):
         ax4.set_title(r'Explosion Time ($t_0$) Residuals')
         plt.xlabel(r'Residual (true - fitted value of $t_0$)')
         plt.ylabel('Frequency')
-        plt.xlim(-.25, .25)
+        plt.xlim(-trange, trange)
         ax4.legend(fontsize = 'x-small')
         figa2.savefig(folder + 't0.png')
         plt.close()
@@ -402,7 +418,7 @@ def plot_diffs(scopes, labels, colour, folder):
 
         for i in range(0, len(scopes)):
             abs_x1 = scopes[i][3]
-            trimmed_x1 = [x for x in abs_x1 if x >= -0.2 and x <= 0.2]
+            trimmed_x1 = [x for x in abs_x1 if x >= -x1range and x <= x1range]
             bins_x1 = np.arange(min(trimmed_x1), max(trimmed_x1) + 0.01, 0.01)
             data = ax10.hist(trimmed_x1, bins_x1, histtype='step', color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_x1)))
 
@@ -412,7 +428,7 @@ def plot_diffs(scopes, labels, colour, folder):
 
             popt, pcov = curve_fit(f, x, y)
 
-            x_fit = py.linspace(-0.5, 0.5, 200)
+            x_fit = py.linspace(-x1range, x1range, 200)
             y_fit = f(x_fit, *popt)
 
             ax11.plot(x_fit, y_fit, lw=2, color=colour[i])
@@ -429,7 +445,7 @@ def plot_diffs(scopes, labels, colour, folder):
         plt.xlabel(r'Residual (true - fitted value of $x_1$)')
         plt.ylabel('Frequency')
         ax10.legend(fontsize = 'x-small')
-        plt.xlim(-0.2, 0.2)
+        plt.xlim(-x1range, x1range)
         figa4.savefig(folder + 'x1.png')
         figa4.clf()
         # plt.show()
@@ -445,13 +461,17 @@ def plot_diffs_norm(scopes, labels, colour, folder):
     Plots histograms and fitted gaussians of residuals for a set of filters, for each parameter.
     """
 
+    crange = 0.2
+    trange = 0.2
+    x1range = 0.2
+
     # C - set to [-0.2,0.2] with bins of 0.01
     try:
         figa, (ax1, ax2, ax3) = plt.subplots(3, sharex=True, sharey=True)
 
         for i in range(0, len(scopes)):
             abs_c = scopes[i][0]
-            trimmed_c = [x for x in abs_c if x >= -0.2 and x <= 0.2]
+            trimmed_c = [x for x in abs_c if x >= -crange and x <= crange]
             bins_c = np.arange(min(trimmed_c), max(trimmed_c) + 0.01, 0.01)
             data = ax1.hist(trimmed_c, bins_c, histtype='step', density=True, color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_c)))
 
@@ -461,7 +481,7 @@ def plot_diffs_norm(scopes, labels, colour, folder):
 
             popt, pcov = curve_fit(f, x, y)
 
-            x_fit = py.linspace(-2, 2, 200)
+            x_fit = py.linspace(-crange, crange, 200)
             y_fit = f(x_fit, *popt)
 
             ax2.plot(x_fit, y_fit, lw=2, color=colour[i])
@@ -477,7 +497,7 @@ def plot_diffs_norm(scopes, labels, colour, folder):
         ax1.set_title('NORMALIZED Colour (c) Residuals')
         plt.xlabel('Residual (true - fitted value of c)')
         plt.ylabel('PDF')
-        plt.xlim(-0.2, 0.2)
+        plt.xlim(-crange, crange)
         ax1.legend(fontsize = 'x-small')
         figa.savefig(folder + 'colour_normed.png')
         plt.close()
@@ -491,7 +511,7 @@ def plot_diffs_norm(scopes, labels, colour, folder):
 
         for i in range(0, len(scopes)):
             abs_t0 = scopes[i][1]
-            trimmed_t0 = [x for x in abs_t0 if x >= -0.25 and x <= .25]
+            trimmed_t0 = [x for x in abs_t0 if x >= -trange and x <= trange]
             bins_t0 = np.arange(min(trimmed_t0), max(trimmed_t0) + 0.02, 0.02)
             data = ax4.hist(trimmed_t0, bins_t0, histtype='step', density=True, color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_t0)))
 
@@ -501,7 +521,7 @@ def plot_diffs_norm(scopes, labels, colour, folder):
 
             popt, pcov = curve_fit(f, x, y)
 
-            x_fit = py.linspace(-.25, .25, 200)
+            x_fit = py.linspace(-trange, trange, 200)
             y_fit = f(x_fit, *popt)
 
             ax5.plot(x_fit, y_fit, lw=2, color=colour[i])
@@ -517,7 +537,7 @@ def plot_diffs_norm(scopes, labels, colour, folder):
         ax4.set_title(r'NORMALIZED Explosion Time ($t_0$) Residuals')
         plt.xlabel(r'Residual (true - fitted value of $t_0$)')
         plt.ylabel('PDF')
-        plt.xlim(-.25, .25)
+        plt.xlim(-trange, trange)
         ax4.legend(fontsize = 'x-small')
         figa2.savefig(folder + 't0_normed.png')
         plt.close()
@@ -529,11 +549,9 @@ def plot_diffs_norm(scopes, labels, colour, folder):
     try:
         figa4, (ax10, ax11, ax12) = plt.subplots(3, sharex=True, sharey=True)
 
-        minn = 10000
-        maxx = -10000
         for i in range(0, len(scopes)):
             abs_x1 = scopes[i][3]
-            trimmed_x1 = [x for x in abs_x1 if x >= -0.2 and x <= 0.2]
+            trimmed_x1 = [x for x in abs_x1 if x >= -x1range and x <= x1range]
             bins_x1 = np.arange(min(trimmed_x1), max(trimmed_x1) + 0.01, 0.01)
             data = ax10.hist(trimmed_x1, bins_x1, histtype='step', density=True, color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_x1)))
 
@@ -543,7 +561,7 @@ def plot_diffs_norm(scopes, labels, colour, folder):
 
             popt, pcov = curve_fit(f, x, y)
 
-            x_fit = py.linspace(-0.5, 0.5, 200)
+            x_fit = py.linspace(-x1range, x1range, 200)
             y_fit = f(x_fit, *popt)
 
             ax11.plot(x_fit, y_fit, lw=2, color=colour[i])
@@ -560,7 +578,7 @@ def plot_diffs_norm(scopes, labels, colour, folder):
         plt.xlabel(r'Residual (true - fitted value of $x_1$)')
         plt.ylabel('PDF')
         ax10.legend(fontsize = 'x-small')
-        plt.xlim(-0.2, 0.2)
+        plt.xlim(-x1range, x1range)
         figa4.savefig(folder + 'x1_normed.png')
         figa4.clf()
         # plt.show()
@@ -575,6 +593,9 @@ def plot_errors(scopes, labels, colour, folder):
     """
     Plots histograms and fitted gaussians of residuals for a set of filters, for each parameter.
     """
+    crange = 0.5
+    trange = 0.5
+    x1range = 0.5
 
     # C - set to [-0.2,0.2] with bins of 0.01
     try:
@@ -583,7 +604,7 @@ def plot_errors(scopes, labels, colour, folder):
             abs_c = copy.deepcopy(scopes[i][0])
             c_flips = [-x for x in abs_c]
             abs_c.extend(c_flips)
-            trimmed_c = [x for x in abs_c if x >= -0.2 and x <= 0.2]
+            trimmed_c = [x for x in abs_c if x >= -crange and x <= crange]
             bins_c = np.arange(min(trimmed_c), max(trimmed_c) + 0.01, 0.01)
             data = ax1.hist(trimmed_c, bins_c, histtype='step', color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_c)/2))
 
@@ -593,7 +614,7 @@ def plot_errors(scopes, labels, colour, folder):
 
             popt, pcov = curve_fit(f, x, y)
 
-            x_fit = py.linspace(-.2, .2, 200)#(min(abs_c), max(abs_c), 200)
+            x_fit = py.linspace(-crange, crange, 200)#(min(abs_c), max(abs_c), 200)
             y_fit = f(x_fit, *popt)
 
             ax2.plot(x_fit, y_fit, lw=2, color=colour[i])
@@ -624,7 +645,7 @@ def plot_errors(scopes, labels, colour, folder):
             abs_t0 = copy.deepcopy(scopes[i][1])
             t0_flips = [-x for x in abs_t0]
             abs_t0.extend(t0_flips)
-            trimmed_t0 = [x for x in abs_t0 if x >= -0.25 and x <= 0.25]
+            trimmed_t0 = [x for x in abs_t0 if x >= -trange and x <= trange]
             bins_t0 = np.arange(min(trimmed_t0), max(trimmed_t0) + 0.02, 0.02)
             data = ax4.hist(trimmed_t0, bins_t0, histtype='step', color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_t0)/2))
 
@@ -634,7 +655,7 @@ def plot_errors(scopes, labels, colour, folder):
 
             popt, pcov = curve_fit(f, x, y)
 
-            x_fit = py.linspace(min(trimmed_t0), max(trimmed_t0), 200)
+            x_fit = py.linspace(-trange, trange, 200)
             y_fit = f(x_fit, *popt)
 
             ax5.plot(x_fit, y_fit, lw=2, color=colour[i])
@@ -710,7 +731,7 @@ def plot_errors(scopes, labels, colour, folder):
             abs_x1 = copy.deepcopy(scopes[i][3])
             x1_flips = [-x for x in abs_x1]
             abs_x1.extend(x1_flips)
-            trimmed_x1 = [x for x in abs_x1 if x >= -0.5 and x <= 0.5]
+            trimmed_x1 = [x for x in abs_x1 if x >= -x1range and x <= x1range]
             bins_x1 = np.arange(min(trimmed_x1), max(trimmed_x1) + 0.01, 0.01)
             data = ax10.hist(trimmed_x1, bins_x1, histtype='step', color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_x1)/2))
 
@@ -720,7 +741,7 @@ def plot_errors(scopes, labels, colour, folder):
 
             popt, pcov = curve_fit(f, x, y)
 
-            x_fit = py.linspace(min(trimmed_x1), max(trimmed_x1), 200)
+            x_fit = py.linspace(-x1range, x1range, 200)
             y_fit = f(x_fit, *popt)
 
             ax11.plot(x_fit, y_fit, lw=2, color=colour[i])
@@ -752,6 +773,9 @@ def plot_errors_norm(scopes, labels, colour, folder):
     Plots histograms and fitted gaussians of residuals for a set of filters, for each parameter.
     """
 
+    crange = 0.5
+    trange = 0.5
+    x1range = 0.5
     # C - set to [-0.2,0.2] with bins of 0.01
     try:
         figa, (ax1, ax2, ax3) = plt.subplots(3, sharex=True, sharey=True)
@@ -759,7 +783,7 @@ def plot_errors_norm(scopes, labels, colour, folder):
             abs_c = copy.deepcopy(scopes[i][0])
             c_flips = [-x for x in abs_c]
             abs_c.extend(c_flips)
-            trimmed_c = [x for x in abs_c if x >= -0.2 and x <= 0.2]
+            trimmed_c = [x for x in abs_c if x >= -crange and x <= crange]
             bins_c = np.arange(min(trimmed_c), max(trimmed_c) + 0.01, 0.01)
             data = ax1.hist(trimmed_c, bins_c, histtype='step', density=True, color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_c)/2))
 
@@ -769,7 +793,7 @@ def plot_errors_norm(scopes, labels, colour, folder):
 
             popt, pcov = curve_fit(f, x, y)
 
-            x_fit = py.linspace(-.2, .2, 200)#(min(abs_c), max(abs_c), 200)
+            x_fit = py.linspace(-crange, crange, 200)#(min(abs_c), max(abs_c), 200)
             y_fit = f(x_fit, *popt)
 
             ax2.plot(x_fit, y_fit, lw=2, color=colour[i])
@@ -800,7 +824,7 @@ def plot_errors_norm(scopes, labels, colour, folder):
             abs_t0 = copy.deepcopy(scopes[i][1])
             t0_flips = [-x for x in abs_t0]
             abs_t0.extend(t0_flips)
-            trimmed_t0 = [x for x in abs_t0 if x >= -0.25 and x <= 0.25]
+            trimmed_t0 = [x for x in abs_t0 if x >= -trange and x <= trange]
             bins_t0 = np.arange(min(trimmed_t0), max(trimmed_t0) + 0.02, 0.02)
             data = ax4.hist(trimmed_t0, bins_t0, histtype='step', density=True, color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_t0)/2))
 
@@ -810,7 +834,7 @@ def plot_errors_norm(scopes, labels, colour, folder):
 
             popt, pcov = curve_fit(f, x, y)
 
-            x_fit = py.linspace(min(trimmed_t0), max(trimmed_t0), 200)
+            x_fit = py.linspace(-trange, trange, 200)
             y_fit = f(x_fit, *popt)
 
             ax5.plot(x_fit, y_fit, lw=2, color=colour[i])
@@ -841,7 +865,7 @@ def plot_errors_norm(scopes, labels, colour, folder):
             abs_x1 = copy.deepcopy(scopes[i][3])
             x1_flips = [-x for x in abs_x1]
             abs_x1.extend(x1_flips)
-            trimmed_x1 = [x for x in abs_x1 if x >= -0.5 and x <= 0.5]
+            trimmed_x1 = [x for x in abs_x1 if x >= -x1range and x <= x1range]
             bins_x1 = np.arange(min(trimmed_x1), max(trimmed_x1) + 0.01, 0.01)
             data = ax10.hist(trimmed_x1, bins_x1, histtype='step', density=True, color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_x1)/2))
 
@@ -851,7 +875,7 @@ def plot_errors_norm(scopes, labels, colour, folder):
 
             popt, pcov = curve_fit(f, x, y)
 
-            x_fit = py.linspace(min(trimmed_x1), max(trimmed_x1), 200)
+            x_fit = py.linspace(-x1range, x1range, 200)
             y_fit = f(x_fit, *popt)
 
             ax11.plot(x_fit, y_fit, lw=2, color=colour[i])
@@ -878,18 +902,29 @@ def plot_errors_norm(scopes, labels, colour, folder):
 
     return
 
-def plot_wrap(smb_diffs2, kst_diffs2, bothb_diffs2, parent):
-    parent = parent + 'stats/errors_removed/residuals/'
+def plot_wrap(smg_diffs2, smb_diffs2, kst_diffs2, bothg_diffs2, bothb_diffs2, parent):
+    parent = parent + 'stats/errors_removed/residuals_trimmed/'
+
+
+    plot_diffs([smg_diffs2],
+               ['SM_ws'],
+               ['mediumblue'],
+               parent + 'SM_ws/')
 
     plot_diffs([smb_diffs2],
-               ['SM'],
-               ['b'],
-               parent + 'SM/')
+               ['SM_ps'],
+               ['lightskyblue'],
+               parent + 'SM_ps/')
+
+    plot_diffs_norm([smg_diffs2],
+               ['SM_ws'],
+               ['mediumblue'],
+               parent + 'SM_ws/')
 
     plot_diffs_norm([smb_diffs2],
-               ['SM'],
-               ['b'],
-               parent + 'SM/')
+               ['SM_ps'],
+               ['lightskyblue'],
+               parent + 'SM_ps/')
 
     plot_diffs([kst_diffs2],
                ['KST'],
@@ -901,39 +936,60 @@ def plot_wrap(smb_diffs2, kst_diffs2, bothb_diffs2, parent):
                ['g'],
                parent + 'KST/')
 
+    plot_diffs([bothg_diffs2],
+               ['Combined_ws'],
+               ['crimson'],
+               parent + 'Combined_ws/')
+
+    plot_diffs_norm([bothg_diffs2],
+               ['Combined_ws'],
+               ['crimson'],
+               parent + 'Combined_ws/')
+
     plot_diffs([bothb_diffs2],
-               ['Combined'],
-               ['y'],
-               parent + 'Combined/')
+               ['Combined_ps'],
+               ['coral'],
+               parent + 'Combined_ps/')
 
     plot_diffs_norm([bothb_diffs2],
-               ['Combined'],
-               ['y'],
-               parent + 'Combined/')
+                    ['Combined_ps'],
+                    ['coral'],
+                    parent + 'Combined_ps/')
 
-    plot_diffs([smb_diffs2, kst_diffs2, bothb_diffs2],
-               ['SM', 'KST', 'Combined'],
-               ['b', 'g', 'y'],
+    plot_diffs([smg_diffs2, smb_diffs2, kst_diffs2, bothg_diffs2, bothb_diffs2],
+               ['SM_ws', 'SM_ps', 'KST', 'Combined_ws', 'Combined_ps'],
+               ['mediumblue', 'lightskyblue', 'g', 'crimson', 'coral'],
                parent + 'All/')
 
-    plot_diffs_norm([smb_diffs2, kst_diffs2, bothb_diffs2],
-               ['SM', 'KST', 'Combined'],
-               ['b', 'g', 'y'],
+    plot_diffs_norm([smg_diffs2, smb_diffs2, kst_diffs2, bothg_diffs2, bothb_diffs2],
+               ['SM_ws', 'SM_ps', 'KST', 'Combined_ws', 'Combined_ps'],
+               ['mediumblue', 'lightskyblue', 'g', 'crimson', 'coral'],
                parent + 'All/')
     return
 
-def plot_wrap_er(smb_diffs2, kst_diffs2, bothb_diffs2, parent):
-    parent = parent + 'stats/errors_removed/errors/'
+def plot_wrap_er(smg_diffs2, smb_diffs2, kst_diffs2, bothg_diffs2, bothb_diffs2, parent):
+    parent = parent + 'stats/errors_removed/errors_trimmed/'
+
+
+    plot_errors([smg_diffs2],
+               ['SM_ws'],
+               ['mediumblue'],
+               parent + 'SM_ws/')
 
     plot_errors([smb_diffs2],
-               ['SM'],
-               ['b'],
-               parent + 'SM/')
+               ['SM_ps'],
+               ['lightskyblue'],
+               parent + 'SM_ps/')
+
+    plot_errors_norm([smg_diffs2],
+               ['SM_ws'],
+               ['mediumblue'],
+               parent + 'SM_ws/')
 
     plot_errors_norm([smb_diffs2],
-                ['SM'],
-                ['b'],
-                parent + 'SM/')
+               ['SM_ps'],
+               ['lightskyblue'],
+               parent + 'SM_ps/')
 
     plot_errors([kst_diffs2],
                ['KST'],
@@ -941,48 +997,70 @@ def plot_wrap_er(smb_diffs2, kst_diffs2, bothb_diffs2, parent):
                parent + 'KST/')
 
     plot_errors_norm([kst_diffs2],
-                ['KST'],
-                ['g'],
-                parent + 'KST/')
+               ['KST'],
+               ['g'],
+               parent + 'KST/')
+
+    plot_errors([bothg_diffs2],
+               ['Combined_ws'],
+               ['crimson'],
+               parent + 'Combined_ws/')
+
+    plot_errors_norm([bothg_diffs2],
+               ['Combined_ws'],
+               ['crimson'],
+               parent + 'Combined_ws/')
 
     plot_errors([bothb_diffs2],
-               ['Combined'],
-               ['y'],
-               parent + 'Combined/')
+               ['Combined_ps'],
+               ['coral'],
+               parent + 'Combined_ps/')
 
     plot_errors_norm([bothb_diffs2],
-               ['Combined'],
-               ['y'],
-               parent + 'Combined/')
+                    ['Combined_ps'],
+                    ['coral'],
+                    parent + 'Combined_ps/')
 
-    plot_errors([smb_diffs2, kst_diffs2, bothb_diffs2],
-               ['SM', 'KST', 'Combined'],
-               ['b', 'g', 'y'],
+    plot_errors([smg_diffs2, smb_diffs2, kst_diffs2, bothg_diffs2, bothb_diffs2],
+               ['SM_ws', 'SM_ps', 'KST', 'Combined_ws', 'Combined_ps'],
+               ['mediumblue', 'lightskyblue', 'g', 'crimson', 'coral'],
                parent + 'All/')
 
-    plot_errors_norm([smb_diffs2, kst_diffs2, bothb_diffs2],
-                ['SM', 'KST', 'Combined'],
-                ['b', 'g', 'y'],
-                parent + 'All/')
+    plot_errors_norm([smg_diffs2, smb_diffs2, kst_diffs2, bothg_diffs2, bothb_diffs2],
+               ['SM_ws', 'SM_ps', 'KST', 'Combined_ws', 'Combined_ps'],
+               ['mediumblue', 'lightskyblue', 'g', 'crimson', 'coral'],
+               parent + 'All/')
     return
 
 
-parent = 'Honours_data_sets/060818/ws_sm/sn300/'
+parent = 'Honours_data_sets/071218/OD94Dust/'
 
 
-smb_fails2, smb_diffs2 = analyse(parent + 'sm-ws/',
-                    'skymapper', wipe_fails=True)
+smg_fails2, smg_diffs2 = analyse(parent + 'sm_ws/',
+                    'skymapper_ws', wipe_fails=True)
+smb_fails2, smb_diffs2 = analyse(parent + 'sm_ps/',
+                    'skymapper_ps', wipe_fails=True)
+
 kst_fails2, kst_diffs2 = analyse(parent + 'kst/', 'kst',
                    wipe_fails=True)
-bothb_fails2, bothb_diffs2 = analyse(parent + 'combined-ws/',
-                   'combined', fails=kst_fails2, wipe_fails=True)
-# plot_wrap(smb_diffs2, kst_diffs2, bothb_diffs2, parent)
+
+bothg_fails2, bothg_diffs2 = analyse(parent + 'combined_ws/',
+                   'combined_ws', fails=kst_fails2, wipe_fails=True)
+bothb_fails2, bothb_diffs2 = analyse(parent + 'combined_ps/',
+                   'combined_ps', fails=kst_fails2, wipe_fails=True)
+plot_wrap(smg_diffs2, smb_diffs2, kst_diffs2, bothg_diffs2, bothb_diffs2, parent)
 
 
-smb_fails_er, smb_diffs_er = analyse_errors(parent + 'sm-ws/',
-                    'skymapper', wipe_fails=True)
+smg_fails_er, smg_diffs_er = analyse_errors(parent + 'sm_ws/',
+                    'skymapper_ws', wipe_fails=True)
+smb_fails_er, smb_diffs_er = analyse_errors(parent + 'sm_ps/',
+                    'skymapper_ps', wipe_fails=True)
 kst_fails_er, kst_diffs_er = analyse_errors(parent + 'kst/', 'kst',
                    wipe_fails=True)
-bothb_fails_er, bothb_diffs_er = analyse_errors(parent + 'combined-ws/',
-                   'combined', fails=kst_fails_er, wipe_fails=True)
-# plot_wrap_er(smb_diffs_er, kst_diffs_er, bothb_diffs_er,  parent)
+bothg_fails_er, bothg_diffs_er = analyse_errors(parent + 'combined_ws/',
+                   'combined_ws', fails=kst_fails_er, wipe_fails=True)
+bothb_fails_er, bothb_diffs_er = analyse_errors(parent + 'combined_ps/',
+                   'combined_ps', fails=kst_fails_er, wipe_fails=True)
+
+
+plot_wrap_er(smg_diffs_er, smb_diffs_er, kst_diffs_er, bothg_diffs_er, bothb_diffs_er,  parent)
