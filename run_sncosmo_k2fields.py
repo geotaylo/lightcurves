@@ -912,20 +912,23 @@ def fit_util_lc(data, index, folder, coords_in, z, t0):
         # Fitting SALT2 model using chisquared and MCMC)
         # and fitting for t0.
 
-        model.set(x1=0.01, x0 = 0.01, c = 0.01)
+        # temporary for testing real data fits
 
         result_1, fitted_model_1 = chi_fit(data, model,
                                            ['t0', 'x0', 'x1', 'c'],
                                            minsnr=3.0,
-                                           guess_amplitude=False,
+                                           # Bounds are for real data only, wrong distribution for simulations
+                                           bounds={'x0': (0.000001, 10), 'x1': (-3, 3), 'c': (-0.3, 0.3)},
                                            )
 
 
 
-        result, fitted_model = mcmc_fit(data, fitted_model_1,
+        result, fitted_model = mcmc_fit(data, model,#fitted_model_1,
                                             # Parameters of model to vary.
                                             ['t0', 'x0', 'x1', 'c'],
                                             minsnr=3.0,
+            # Bounds are for real data only, wrong distribution for simulations
+                                            bounds={'x0': (0.000001, 10), 'x1': (-3, 3), 'c': (-0.3, 0.3)},
                                             guess_t0=False,
                                             guess_amplitude=False,
                                             )
