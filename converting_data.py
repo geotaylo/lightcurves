@@ -1,5 +1,5 @@
 import sncosmo
-import run_sncosmo_k2fields as run
+import heaven_and_earth as run
 import pandas as pd
 from astropy.table import Table
 import filters

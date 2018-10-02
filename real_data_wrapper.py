@@ -3,7 +3,7 @@ GT 21/09/2018
 Fitting real data from SNCosmo rebuild.
 """
 
-import run_sncosmo_k2fields as run
+import heaven_and_earth as run
 
 # Path to store info about whole observing set, used by each run.
 # ENSURE / is at end of path!

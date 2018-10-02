@@ -1062,5 +1062,3 @@ bothg_fails_er, bothg_diffs_er = analyse_errors(parent + 'combined_ws/',
 bothb_fails_er, bothb_diffs_er = analyse_errors(parent + 'combined_ps/',
                    'combined_ps', fails=kst_fails_er, wipe_fails=True)
 
-
-plot_wrap_er(smg_diffs_er, smb_diffs_er, kst_diffs_er, bothg_diffs_er, bothb_diffs_er,  parent)

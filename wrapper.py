@@ -9,7 +9,7 @@ run_sncosmo.py.  Can be edited to suit user.
 > THEN fits SALT2 model to observations.
 """
 
-import run_sncosmo_k2fields as run
+import heaven_and_earth as run
 
 # Number of SN to simulate (if using sncosmo distribution, use 0).
 nSNe = 10
