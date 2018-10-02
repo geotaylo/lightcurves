@@ -5,6 +5,7 @@ import pylab as py
 import numpy as np
 from scipy.optimize import curve_fit
 import copy
+import pandas as pd
 
 # best fit values from Betoule paper
 alpha = 0.141 # +- 0.006 (stat+sys)
@@ -160,6 +161,29 @@ def apparent_mag(x0):
 
     return m_b_star
 
+def observed_apparent_mag(folder, index):
+    """ Locates apparent peak g band magnitude from SM obs, which is apparently 'close enough' to b band
+        folder: direct location to SkyMapper folder
+        index: SN index (from 1 to 1000, e.g.)
+        Note - this is only set up for simulated data currently - you could do this by hand for real data?
+    """
+
+    # Load csv - 'observed_lc_%s.text'%index
+    df = pd.read_csv(folder + 'observed_lc_%s.txt'%index, skiprows=[0,1,2,3,4], sep='\s+')
+
+    # Select 'smg' filters only
+    df_new = df.loc[df['band'] == 'smg']
+
+    # does varying zp affect this? - yes, needs to be normalised
+    # Find peak flux
+    peak_flux = np.max(df_new['flux'])
+
+    print peak_flux
+    # Convert to magnitude
+
+    return
+
+observed_apparent_mag('Honours_data_sets/062618/1000set/sm_ws/', 1)
 
 def distance_modulus(x0, x1, c):
     """
@@ -188,3 +212,4 @@ def distance(mu):
     y = (mu -25)/5
     d_l = 10**(y)
     return d_l
+
