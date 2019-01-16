@@ -1,8 +1,11 @@
 """ A program to fit luminosity distances from light curve parameters."""
 
+import filters
 import csv
 import pylab as py
 import numpy as np
+import sncosmo
+from sncosmo.photdata import photometric_data
 from scipy.optimize import curve_fit
 import copy
 import pandas as pd
@@ -24,6 +27,11 @@ my_Om0 = 0.3
 Ode0 = 0.7
 my_w0 = -1.0
 wa = 0.0
+
+
+# Required for normalization when obtaining apparent mag
+filters.register_filters()
+
 
 def get_params(folder, set, fails=[]):
     """
@@ -168,24 +176,30 @@ def observed_apparent_mag(folder, index):
         Note - this is only set up for simulated data currently - you could do this by hand for real data?
     """
 
-    # Load csv - 'observed_lc_%s.text'%index
-    df = pd.read_csv(folder + 'observed_lc_%s.txt'%index, skiprows=[0,1,2,3,4], sep='\s+')
+    # Load data
+    obs = sncosmo.read_lc(folder + 'observed_lc_%s.txt'%index)
 
-    # Select 'smg' filters only
-    df_new = df.loc[df['band'] == 'smg']
+    del_rows = [x for x,j in enumerate(obs['band']) if j != 'smg']
 
-    # does varying zp affect this? - yes, needs to be normalised
-    # Find peak flux
-    peak_flux = np.max(df_new['flux'])
+    # Get indices where band is g filter - need to use [0] as it returns some extra junk.
+    obs.remove_rows(del_rows)
 
-    print peak_flux
-    # Convert to magnitude
+    # convert to dtype sncosmo can handle
+    obs = photometric_data(obs)
 
-    return
+    # normalize by zero point
+    obs = obs.normalized(25.0, 'ab')
 
-observed_apparent_mag('Honours_data_sets/062618/1000set/sm_ws/', 1)
+    # maximum flux
+    max_flux = np.max(obs.flux)
 
-def distance_modulus(x0, x1, c):
+    # Convert to magnitude - built in SNCosmo formulas weren't clear, this is sourced from Brad (25 is the zero pt)
+    max_mag = -2.5*np.log10(max_flux) + 25
+
+    return max_mag
+
+
+def distance_modulus(x0, x1, c, folder, sn_num):
     """
     :param M_stellar: Mass of star (for calculating absolute magnitude
     :param x0: scaling parameter (units of flux?)
@@ -199,7 +213,7 @@ def distance_modulus(x0, x1, c):
     M_b = M_1_B
 
     # Apparent magnitude of SN
-    m_b_star = apparent_mag(x0)
+    m_b_star = observed_apparent_mag('Honours_data_sets/062618/1000set/sm_ws/', sn_num)
 
     # distance modulus
     mu = m_b_star - M_b + (alpha*x1)-(beta*c)
@@ -213,3 +227,11 @@ def distance(mu):
     d_l = 10**(y)
     return d_l
 
+def h0_est(z, d):
+    """ Estimates hubble constant km/s/Mpc"""
+
+    # speed of light (km/s)
+    c = 299792
+    h = (c*z)/d
+
+    return h

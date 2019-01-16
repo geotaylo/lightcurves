@@ -7,6 +7,7 @@ Files must be in wd (or update path as needed)
 """
 
 from astropy.io import ascii
+import matplotlib.pyplot as plt
 
 import sncosmo
 
@@ -41,6 +42,7 @@ def register_filters():
                                name='kst')
 
     sncosmo.registry.register(kstband, 'kst', force=True)
+
         
     # SKYMAPPER v filter.
 
@@ -92,5 +94,19 @@ def register_filters():
                                name='smi')
     
     sncosmo.registry.register(smiband, 'smi', force=True)
-    
+
+    plt.plot(kst_wavelength, kst_transmission, label='kst', linewidth=2)
+    plt.plot(smg_wavelength, smg_transmission, label='smg', linewidth=2)
+    plt.plot(smi_wavelength, smi_transmission, label='smi', linewidth=2)
+    plt.plot(smr_wavelength, smr_transmission, label='smr', linewidth=2)
+    plt.xlabel(r'Wavelength ($\AA$)', fontsize='xx-large')
+    plt.ylabel('Transmission', fontsize='xx-large')
+    leg = plt.legend(fontsize='xx-large', loc='center left', bbox_to_anchor=(1, 0.5), ncol=1,
+                     borderaxespad=0, frameon=False, labelspacing=1)
+    for line in leg.get_lines():
+        line.set_linewidth(7.0)
+    plt.savefig('filters.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
+    plt.show()
     return
+
+register_filters()

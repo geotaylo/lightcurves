@@ -918,8 +918,13 @@ def fit_util_lc(data, index, folder, coords_in, z, t0):
                                            ['t0', 'x0', 'x1', 'c'],
                                            minsnr=3.0,
                                            # Bounds are for real data only, wrong distribution for simulations
-                                           bounds={'x0': (0.000001, 10), 'x1': (-3, 3), 'c': (-0.3, 0.3)},
-                                           )
+                                           #bounds={'x0': (0.0000000001, 10), 'x1': (-3, 3), 'c': (-0.3, 0.3)},
+                                           bounds={'x0': (0.0000000001, 20), 'x1': (-30, 30), 'c': (-10, 10)},
+                                           #bounds={'x0': (0.0000000001, 10), 'x1': (-3, 3), 'c': (-10, 10)},
+                                            )
+
+        #delete this line when bringing mcmc back
+        #result = result_1
 
 
 
@@ -927,20 +932,12 @@ def fit_util_lc(data, index, folder, coords_in, z, t0):
                                             # Parameters of model to vary.
                                             ['t0', 'x0', 'x1', 'c'],
                                             minsnr=3.0,
-            # Bounds are for real data only, wrong distribution for simulations
-                                            bounds={'x0': (0.000001, 10), 'x1': (-3, 3), 'c': (-0.3, 0.3)},
+                                            # Bounds are for real data only, wrong distribution for simulations
+                                            bounds={'x0': (0.000001, 10), 'x1': (-3, 3), 'c': (-10, 10)},
                                             guess_t0=False,
                                             guess_amplitude=False,
                                             )
 
-        # # This needs bounds handled
-        # elif fit_method == 3:
-        #     result, fitted_model = nest_fit(data, model,
-        #                                     # Parameters of model to vary.
-        #                                     # ['t0', 'x0', 'x1', 'c'],
-        #                                     ['x0', 'x1', 'c'],
-        #                                     minsnr=3.0, verbose=True
-        #                                     )
 
     else:
         # Fitting SALT2 model using chisquared and MCMC
@@ -986,7 +983,7 @@ def fit_util_lc(data, index, folder, coords_in, z, t0):
     #pp = PdfPages(plotname)
 
     fig = sncosmo.plot_lc(data, model=fitted_model_1,
-                          errors=result_1.errors, format='png'
+                          errors=result_1.errors, format='png',
                           )
 
     plt.savefig(plotname + '_chi.png')
@@ -999,7 +996,7 @@ def fit_util_lc(data, index, folder, coords_in, z, t0):
     plt.savefig(plotname +'_mcmc.png')
     plt.close(fig)
 
-    #pp.close()
+    # pp.close()
 
     print 'Fitted light curve plotted in ' + plotname
 

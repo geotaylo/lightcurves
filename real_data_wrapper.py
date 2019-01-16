@@ -5,21 +5,23 @@ Fitting real data from SNCosmo rebuild.
 
 import heaven_and_earth as run
 
-# Path to store info about whole observing set, used by each run.
-# ENSURE / is at end of path!
-parent_folder = 'Real_data/KEGS/2017i/'
+binding = 'unbound_c/'
 
 # Names of SN
-name = '2017i'
+name = '2018j'
+
+# Path to store info about whole observing set, used by each run.
+# ENSURE / is at end of path!
+parent_folder = 'Real_data/KEGS/'+name+'/'+binding
 
 # List of redshifts
-z = [0.094]
+z = [0.01]
 
 # List of RA (in J2000 frame and degrees)
-ra = [run.dms_to_deg(42.,42.,4.)]
+ra = [run.dms_to_deg(06.,39.,5.)]
 
 # List of dec (in J2000 frame and degrees)
-dec = [run.dms_to_deg(13.,58.,04)]
+dec = [run.dms_to_deg(19.,20.,17.7)]
 
 # Make SN dictionary
 run.make_sn_dict(parent_folder, z, ra, dec)
