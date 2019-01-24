@@ -1140,6 +1140,39 @@ def plot_errors_norm(scopes, labels, colour, folder):
     return
 
 
+def uncertainty_summary(errors, scopes, colours, folder):
+    """ Calculates and plots summary statistics of uncertainties - a modification of plot_errors?"""
+
+    # Plot success rates
+
+    # Create index array
+    bar_indices = np.arange(len(errors))*2
+    # Create array of lengths, arbitrarily using c [0] list.
+    bar_lengths = [len(x[:][0])/10. for x in errors]
+    # Text to go below scope names
+    bar_strings = ['\n %s fits'%len(x[:][0]) for x in errors]
+    bar_labels = [m+n for m,n in zip(scopes,bar_strings)]
+    # Plot bars
+    fig = plt.figure()
+    bars = plt.bar(bar_indices, bar_lengths, width = 1.0, color=colours, alpha = 0.4)
+    # Add counts above the bar graphs
+    for rect in bars:
+        height = rect.get_height()
+        plt.text(rect.get_x() + rect.get_width() / 2.0, height-5, str(height) + '%', ha='center', va='bottom')
+    plt.xticks(bar_indices, bar_labels)
+    plt.ylabel('Fit success rate (%)')
+    fig.savefig(folder + 'success_rate.png', dpi=200, bbox_inches='tight')
+    plt.close(fig)
+
+    return
+
+    # For each telescope in scopes
+
+    # calculate mean, median, mode, sigma
+
+    # plot histograms of errors from [0,3sigma]
+
+
 def plot_wrap(smg_diffs2, smb_diffs2, kst_diffs2, bothg_diffs2, bothb_diffs2, parent):
     """
     Produces a bunch of plots of normed residuals (non-normed currently supressed)
@@ -1306,5 +1339,8 @@ bothg_fails_er, bothg_diffs_er = analyse_errors(parent + 'combined_ws/',
                    'combined_ws', fails=kst_fails_er, wipe_fails=True)
 bothb_fails_er, bothb_diffs_er = analyse_errors(parent + 'combined_ps/',
                    'combined_ps', fails=kst_fails_er, wipe_fails=True)
-plot_wrap_er(smg_diffs_er, smb_diffs_er, kst_diffs_er, bothg_diffs_er, bothb_diffs_er, parent)
-plt.close('all')
+# plot_wrap_er(smg_diffs_er, smb_diffs_er, kst_diffs_er, bothg_diffs_er, bothb_diffs_er, parent)
+# plt.close('all')
+
+uncertainty_summary([smg_diffs_er, smb_diffs_er, kst_diffs_er, bothg_diffs_er, bothb_diffs_er], ['SM_ws', 'SM_ps', 'KST', 'Combined_ws', 'Combined_ps'],
+               ['mediumblue', 'lightskyblue', 'g', 'crimson', 'coral'], parent)
