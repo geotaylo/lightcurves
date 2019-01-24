@@ -18,6 +18,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 import copy
 from matplotlib.ticker import MaxNLocator
+from scipy import stats
 
 
 def analyse(folder, set, fails=[], wipe_fails=False):
@@ -1139,6 +1140,16 @@ def plot_errors_norm(scopes, labels, colour, folder):
 
     return
 
+def summary_helper(e):
+    """ Returns summry satistics for a list of errors, e """
+    mean =  np.mean(e)
+    median = np.median(e)
+    sigma = np.std(e)
+    min = np.min(e)
+    max = np.max(e)
+    out = [mean, median, sigma, min, max]
+    rounded_out = [np.round(elem, 3) for elem in out]
+    return rounded_out
 
 def uncertainty_summary(errors, scopes, colours, folder):
     """ Calculates and plots summary statistics of uncertainties - a modification of plot_errors?"""
@@ -1164,13 +1175,81 @@ def uncertainty_summary(errors, scopes, colours, folder):
     fig.savefig(folder + 'success_rate.png', dpi=200, bbox_inches='tight')
     plt.close(fig)
 
+    # For each telescope in scopes
+    for i in range(len(scopes)):
+        c_errors = copy.deepcopy(errors[i][0])
+        t0_errors = copy.deepcopy(errors[i][1])
+        x1_errors_uncut = copy.deepcopy(errors[i][3])
+
+        x1_errors = [x for x in x1_errors_uncut if x <= 100]
+        x1_cut = len([x for x in x1_errors_uncut if x > 100])
+
+        c_summary = summary_helper(c_errors)
+        t0_summary = summary_helper(t0_errors)
+        x1_summary = summary_helper(x1_errors)
+        try:
+            fig, (ax1, ax2, ax3) = plt.subplots(3, sharex=False, sharey=True)
+
+            #----------COLOUR------------
+            # Restrict range to 3 sigma
+            trimmed_c = [x for x in c_errors if x >= 0 and x <= c_summary[2]*3.]
+            # Set bin intervals
+            bins_c = np.arange(0, max(trimmed_c) + 0.01, 0.01)
+            # Plot c error histograms on top plot
+            data = ax1.hist(trimmed_c, bins_c, histtype='stepfilled', density=True, color=colours[i],
+                            label=scopes[i] + ' \n $\\bf{c}$ (%s fits within 3$\sigma$) \n $\it{mean:}$ %s \n $\it{median:}$ %s \n $\it{\sigma:}$ %s \n $\it{full\,range:}$ [%s,%s] '
+                                  % (len(trimmed_c), c_summary[0], c_summary[1], c_summary[2], c_summary[3], c_summary[4]), alpha=0.4)
+            ax1.set_xlabel('c error')
+            ax1.set_ylabel('Frequency')
+            #
+            leg = ax1.legend(fontsize='large', loc='center left', bbox_to_anchor=(1, 0.5), ncol=1,
+                             borderaxespad=0, frameon=False, labelspacing=1)
+            for line in leg.get_lines():
+                line.set_linewidth(4.0)
+
+            # ----------EXPLOSION TIME------------
+            # Restrict range to 3 sigma
+            trimmed_t0 = [x for x in t0_errors if x >= 0 and x <= t0_summary[2] * 3.]
+            # Set bin intervals
+            bins_t0 = np.arange(0, max(trimmed_t0) + 0.02, 0.02)
+            # Plot c error histograms on top plot
+            data = ax2.hist(trimmed_t0, bins_t0, histtype='stepfilled', density=True, color=colours[i],
+                            label='$\\bf{t_0}$ (%s fits within 3$\sigma$) \n $\it{mean:}$ %s \n $\it{median:}$ %s \n $\it{\sigma:}$ %s \n $\it{full\,range:}$ [%s,%s] '
+                                  % (len(trimmed_t0), t0_summary[0], t0_summary[1], t0_summary[2], t0_summary[3],
+                                     t0_summary[4]), alpha=0.4)
+            ax2.set_xlabel('t0 error')
+            ax2.set_ylabel('Frequency')
+            #
+            leg2 = ax2.legend(fontsize='large', loc='center left', bbox_to_anchor=(1, 0.5), ncol=1,
+                             borderaxespad=0, frameon=False, labelspacing=1)
+            for line in leg2.get_lines():
+                line.set_linewidth(4.0)
+
+            # ----------STRETCH------------
+            # Restrict range to 3 sigma
+            trimmed_x1 = [x for x in x1_errors if x >= 0 and x <= x1_summary[2] * 3.]
+            # Set bin intervals
+            bins_x1 = np.arange(0, max(trimmed_x1) + 0.02, 0.02)
+            # Plot c error histograms on top plot
+            data = ax3.hist(trimmed_x1, bins_x1, histtype='stepfilled', density=True, color=colours[i],
+                            label='$\\bf{x_1}$ (%s fits within 3$\sigma$) \n (%s values over 100 not considered) \n $\it{mean:}$ %s \n $\it{median:}$ %s \n $\it{\sigma:}$ %s \n $\it{full\,range:}$ [%s,%s] '
+                                  % (len(trimmed_x1), x1_cut, x1_summary[0], x1_summary[1], x1_summary[2], x1_summary[3],
+                                     x1_summary[4]), alpha=0.4)
+            ax3.set_xlabel('Absolute Error')
+            ax3.set_ylabel('Frequency')
+            #
+            leg3 = ax3.legend(fontsize='large', loc='center left', bbox_to_anchor=(1, 0.5), ncol=1,
+                              borderaxespad=0, frameon=False, labelspacing=1)
+            for line in leg3.get_lines():
+                line.set_linewidth(4.0)
+
+            fig.savefig(folder + scopes[i] + '.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
+            plt.close(fig)
+        except RuntimeError as e:
+            print(e.message)
+            plt.close()
     return
 
-    # For each telescope in scopes
-
-    # calculate mean, median, mode, sigma
-
-    # plot histograms of errors from [0,3sigma]
 
 
 def plot_wrap(smg_diffs2, smb_diffs2, kst_diffs2, bothg_diffs2, bothb_diffs2, parent):
