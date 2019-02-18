@@ -26,6 +26,10 @@ from scipy.stats import exponweib
 import math
 import numpy as np
 import random
+from numpy import random
+from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
+from astropy.cosmology import FlatLambdaCDM
+from astropy.extern.six.moves import range
 
 from astropy.table import Table, vstack
 import datetime
@@ -80,7 +84,7 @@ H0 = 70.00
 
 # DUSTMAPS -------------------------------------------------------------------------------------------------------------
 
-dust = sncosmo.CCM89Dust()
+dust = sncosmo.F99Dust()
 
 # Change path to location of dustmaps
 dustmap = sfdmap.SFDMap("C:\Users\gltay\Documents\ANU 2018\Honours Project\lightcurves\sfddata-master\sfddata-master")#surface
@@ -166,6 +170,7 @@ def get_skynoise(n):
         sigma_psf = std. deviation of psf (pixels)
         sigma_pixel = background noise in single pixel (in counts) = bkgsig in data from Anais Moller
     """
+
     skynoise = []
     for i in range(n):
         # Seeing = FWHM of psf, in arc sec.
@@ -205,6 +210,7 @@ def get_skynoise(n):
 
 def write_params(folder, sn):
     """ Writes observational parameters to a file for reference"""
+
     ensure_dir(folder)
 
     p_file = folder + 'observing_parameters.txt'
@@ -215,6 +221,89 @@ def write_params(folder, sn):
              % (cad_k, sn))
 
     pf.close()
+
+def modified_zdist(zmin, zmax, nsim, ratefunc=lambda z: 1.e-4,
+                   cosmo=FlatLambdaCDM(H0=70.0, Om0=0.3)):
+    """ *** Modified from original SNCosmo method to allow a user-defined number of simulations ***
+         *** Majority of method is part of SNCosmo source code: https://sncosmo.readthedocs.io ***
+
+    Generate a distribution of redshifts.
+
+    Generates the correct redshift distribution and number of SNe, given
+    the input volumetric SN rate, the cosmology, and the observed area and
+    time.
+
+    Parameters
+    ----------
+    zmin, zmax : float
+        Minimum and maximum redshift.
+    nsim : int
+        Number of redshifts to generate
+    ratefunc : callable
+        A callable that accepts a single float (redshift) and returns the
+        comoving volumetric rate at each redshift in units of yr^-1 Mpc^-3.
+        The default is a function that returns ``1.e-4``.
+    cosmo : `~astropy.cosmology.Cosmology`, optional
+        Cosmology used to determine volume. The default is a FlatLambdaCDM
+        cosmology with ``Om0=0.3``, ``H0=70.0``.
+    """
+
+    # Get comoving volume in each redshift shell.
+    z_bins = 100  # Good enough for now.
+    z_binedges = np.linspace(zmin, zmax, z_bins + 1)
+    z_binctrs = 0.5 * (z_binedges[1:] + z_binedges[:-1])
+    sphere_vols = cosmo.comoving_volume(z_binedges).value
+    shell_vols = sphere_vols[1:] - sphere_vols[:-1]
+
+    # SN / (observer year) in shell
+    shell_snrate = np.array([shell_vols[i] *
+                             ratefunc(z_binctrs[i]) / (1. + z_binctrs[i])
+                             for i in range(z_bins)])
+
+    # SN / (observer year) within z_binedges
+    vol_snrate = np.zeros_like(z_binedges)
+    vol_snrate[1:] = np.add.accumulate(shell_snrate)
+
+    # Create a ppf (inverse cdf). We'll use this later to get
+    # a random SN redshift from the distribution.
+    snrate_cdf = vol_snrate / vol_snrate[-1]
+    snrate_ppf = Spline1d(snrate_cdf, z_binedges, k=1)
+
+    for i in range(random.poisson(nsim)):
+        yield float(snrate_ppf(random.random()))
+
+def uniform_sample(xmin, xmax, ymin, ymax):
+    return np.random.random(2,)*np.array([xmax-xmin,ymax-ymin])+np.array([xmin, ymin])
+
+def one_skew_rv(max_prob, sigma_m, sigma_p):
+    """ Generate a distribution for c or x1, as defined in Scolnic and Kessler 2016.
+
+    Returns a random float in the defined skew-normal distribution
+
+    Parameters
+    ----------
+
+    max_prob: float
+        value with maximum probability
+    sigma_m: float
+        standard deviation below max_prob
+    sigma_p: float
+        standard deviation above max_prob
+
+    """
+    while True:
+        sample = uniform_sample(-3, 3, 0, 1)
+        # x = random.uniform(-1,1)
+        x = sample[0]
+        numer = -((x-max_prob)**2)
+        if x <= max_prob:
+            prob =  math.exp(numer/(2*sigma_m**2))
+        else:
+            prob =  math.exp(numer/(2*sigma_p**2))
+        if prob > sample[1]:
+            break
+    rv = sample[0]
+    return rv
 
 
 # KEPLER CAMPAIGN INFO ------------------------------------------------------------------------------------------------
@@ -375,13 +464,14 @@ def simulate_sn_set(folder, nSNe=0, campaign=0):
         print 'Obtained %s' % nSNe + ' redshifts from sncosmo distribution. \n'
 
     else:
-        # Set number of SN and uniformly generate redshift (for statistical sample)
+        # Set number of SN and generate redshift (for statistical sample) from SNCosmo distribution using modified
+        # method
         # Possible observing period: 365 days from today's date in mjd.
         now = Time([str(datetime.date.today())], format='iso', scale='utc')
         now_mjd = now.mjd
         tmin = now_mjd[0]
         tmax = tmin + 365
-        z = np.random.uniform(zmin, zmax, size=nSNe)
+        z = list(modified_zdist(zmin, zmax, nSNe))
         # Equatorial coordinates
         coords = get_coords(nSNe)
         print 'Obtained %s' % nSNe + ' redshifts from uniform distribution. \n'
@@ -390,10 +480,16 @@ def simulate_sn_set(folder, nSNe=0, campaign=0):
     t0 = np.random.uniform(tmin, tmax, nSNe)
 
     # c = colour
-    c = 0.3 * np.random.randn(nSNe)
+    # distribution from Scolnic and Kessler 2016
+    c = []
+    for i in range(nSNe):
+        c.append(one_skew_rv(0.436, 3.118, 0.724))
 
     # x1 = stretch
-    x1 = 3 * np.random.randn(nSNe)
+    # distribution from Scolnic and Kessler 2016
+    x1 = []
+    for i in range(nSNe):
+        x1.append(one_skew_rv(0.436, 3.118, 0.724))
 
     # x0 = scaling factor
     for i in range(nSNe):
