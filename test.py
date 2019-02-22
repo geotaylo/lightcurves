@@ -6,7 +6,9 @@ from numpy import random
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
 from astropy.cosmology import FlatLambdaCDM
 from astropy.extern.six.moves import range
+import vg
 import math
+from numpy import trapz
 
 
 # For z distributions
@@ -87,7 +89,6 @@ def one_skew_rv(max_prob, sigma_m, sigma_p):
     """
     while True:
         sample = uniform_sample(-3, 3, 0, 1)
-        # x = random.uniform(-1,1)
         x = sample[0]
         numer = -((x-max_prob)**2)
         if x <= max_prob:
@@ -99,36 +100,65 @@ def one_skew_rv(max_prob, sigma_m, sigma_p):
     rv = sample[0]
     return rv
 
+def one_skew_prob(max_prob, sigma_m, sigma_p, param):
+    """ Generate a probability for obtaining a certain param c or x1, as defined in Scolnic and Kessler 2016.
 
-# class my_pdf(st.rv_continuous):
-#     def _pdf(self,x):
-#         max_prob = -0.055
-#         sigma_m = 0.023
-#         sigma_p = 0.150
-#         numer = -((x - max_prob) ** 2)
-#         if x <= max_prob:
-#             return math.exp(numer/(2*sigma_m**2))
-#         else:
-#             return math.exp(numer/(2*sigma_p**2))
+    Returns the probability of getting 'param' in the defined distribution
 
-# my_cv = my_pdf(a=-1., b=1., name='my_pdf')
-#
-# cs = my_cv.rvs(size=1000)
+    Parameters
+    ----------
+
+    max_prob: float
+        value with maximum probability
+    sigma_m: float
+        standard deviation below max_prob
+    sigma_p: float
+        standard deviation above max_prob
+    param: float
+        value of param, for which you are trying to find the probability.
+    normfactor: calculated as the area under the graph, using the trapz function.
+        c:  lowz_g10: 0.21660889801728506;
+            ps1_g10: 0.18780753712230902;
+            lowz_c11: 0.1891463376131865;
+            ps1_c11: 0.1654646632528336;
+        x1: lowz_g10: ;
+            ps1_g10: 1.74227465242822;
+            lowz_c11: ;
+            ps1_c11: 1.7610474962637968;
+    """
+    x = param
+    numer = -((x-max_prob)**2)
+    if x <= max_prob:
+        prob =  math.exp(numer/(2*sigma_m**2))
+    else:
+        prob =  math.exp(numer/(2*sigma_p**2))
+    return prob
 
 # probs = np.empty(1000)
 # vals = np.empty(1000)
 # for i in range(1000):
 #     probs[i], vals[i] = triangular(-0.055, 0.023, 0.150)
-
+#
 NormSamples = []
 for i in range(1000):
-    NormSamples.append(one_skew_rv(0.436, 3.118, 0.724))
-# print probs, vals
+    NormSamples.append(one_skew_rv(0.589, 1.026, 0.381))
+
 
 # plt.scatter(vals, probs)
 # # plt.xlim(-0.2,0.2)
 # plt.show()
+fig, ax = plt.subplots()
+#norm_1, bins_1, patches_1 = plt.hist(NormSamples, bins=50, alpha = 0.4)
+norm, bins, patches = ax.hist(NormSamples, bins=50, alpha = 0.4, density=True)
+plt.xlim(-3, 3)
+# plt.show()
+x_sample = np.linspace(-3,3,1000)
+x_probs = []
+for i in range(len(x_sample)):
+    x_probs.append(one_skew_prob(0.589, 1.026, 0.381, x_sample[i]))
+area = trapz(x_probs, dx=6./1000.)
+print area
 
-plt.hist(NormSamples, bins=50)
-plt.xlim(-2, 2)
+ax.scatter(x_sample, np.array(x_probs)/area, color='k')
+
 plt.show()

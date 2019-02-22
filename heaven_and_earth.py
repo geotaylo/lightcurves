@@ -16,8 +16,10 @@ Requires installation of:
 """
 
 
+
 """ Important edit notes:
     - SM observable candidate range: RA(0-360), Dec(-90,10)
+    - Current distribution version : G10 low-z (set using lcdist param)
 """
 
 import os
@@ -81,13 +83,17 @@ LIGHT = 2.997*10**5
 # Hubble Constant (km/s/Mpc)
 H0 = 70.00
 
+# Parameter distribution to use for c and x1 (from Scolnic and Kessler 2016, Table 1)
+lcdist = 'lowz_g10'
+
 
 # DUSTMAPS -------------------------------------------------------------------------------------------------------------
 
 dust = sncosmo.F99Dust()
 
 # Change path to location of dustmaps
-dustmap = sfdmap.SFDMap("C:\Users\gltay\Documents\ANU 2018\Honours Project\lightcurves\sfddata-master\sfddata-master")#surface
+dustmap = sfdmap.SFDMap("/Users/macloan4/GTaylor/lightcurves/sfddata-master")
+#dustmap = sfdmap.SFDMap("C:\Users\gltay\Documents\ANU 2018\Honours Project\lightcurves\sfddata-master\sfddata-master")#surface
 #dustmap = sfdmap.SFDMap("/home/georgie/sfddata-master")#thinkpad
 #dustmap = sfdmap.SFDMap("/home/gtaylor/sfddata-master")#motley
 
@@ -480,19 +486,40 @@ def simulate_sn_set(folder, nSNe=0, campaign=0):
     t0 = np.random.uniform(tmin, tmax, nSNe)
 
     # c = colour
-    # distribution from Scolnic and Kessler 2016
+    # distribution from Scolnic and Kessler 2016, Table 1
     c = []
     for i in range(nSNe):
-        c.append(one_skew_rv(0.436, 3.118, 0.724))
+        # Draws colour from distribution based on tag specified at start of script.
+        if lcdist == 'lowz_g10':
+            c.append(one_skew_rv(-0.055, 0.023, 0.150))
+        elif lcdist == 'ps1_g10':
+            c.append(one_skew_rv(-0.077, 0.029, 0.121))
+        elif lcdist == 'lowz_c11':
+            c.append(one_skew_rv(-0.069, 0.003, 0.148))
+        elif lcdist == 'ps1_c11':
+            c.append(one_skew_rv(-0.103, 0.003, 0.129))
+        else:
+            raise ValueError('Invalid lcdist value - please use \'lowz_g10\', '
+                             '\'ps1_g10\', \'lowz_c11\', or \'ps1_c11\'')
 
     # x1 = stretch
     # distribution from Scolnic and Kessler 2016
     x1 = []
     for i in range(nSNe):
-        x1.append(one_skew_rv(0.436, 3.118, 0.724))
+        if lcdist == 'lowz_g10':
+            x1.append(one_skew_rv(0.436, 3.118, 0.724))
+        elif lcdist == 'ps1_g10':
+            x1.append(one_skew_rv(0.604, 1.029, 0.363))
+        elif lcdist == 'lowz_c11':
+            x1.append(one_skew_rv(0.419, 3.024, 0.742))
+        elif lcdist == 'ps1_c11':
+            x1.append(one_skew_rv(0.589, 1.026, 0.381))
 
     # x0 = scaling factor
     for i in range(nSNe):
+        # Sometimes this goes out of range - I don't know why???
+        # print "i:%s"%i
+        # print "z:%s"%z
         x0 = 10 ** ((29.69 - mu(z[i])) / 2.5)
         p = {'z': z[i], 't0': t0[i], 'x0': x0, 'x1': x1[i], 'c': c[i]}
         params.append(p)
@@ -875,7 +902,7 @@ def combine_scopes(parent_folder, f_1, f_2, f_3, nSNe):
 # C: FITTING ------------------------------------------------------------------
 
 
-def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/', t0=0):
+def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/', t0_in=0):
 
     """ Utility function for fitting lightcurves to
     observations of multiple SN """
@@ -904,8 +931,8 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/', t0=0):
     params = sn_dict['Parameters']
 
     # Hold t0 outputs (only used for Kepler)
-    if t0 == 0:
-        t0 = [0]*nSNe
+    if t0_in == 0:
+        t0_in = [0]*nSNe
 
     explosion_time = []
 
@@ -913,7 +940,7 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/', t0=0):
         try:
             coords_out = [el[i] for el in coords_in]
             z = params[i]['z']
-            p, fitted_t0, err = fit_util_lc(lightcurve[i], i + 1, folder, coords_out, z, t0[i])
+            p, fitted_t0, err = fit_util_lc(lightcurve[i], i + 1, folder, coords_out, z, t0_in[i])
 
             explosion_time.append(fitted_t0)
 
@@ -987,7 +1014,7 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/', t0=0):
     return explosion_time
 
 
-def fit_util_lc(data, index, folder, coords_in, z, t0):
+def fit_util_lc(data, index, folder, coords_in, z, t0_in):
 
     """ Fits SALT2 light curve to a supernova observation
         Plots model, data and residuals """
@@ -1004,32 +1031,24 @@ def fit_util_lc(data, index, folder, coords_in, z, t0):
     model.set(z=z)
 
 
-    if t0 == 0:
-        # Fitting SALT2 model using chisquared and MCMC)
+    if t0_in == 0:
+        # Fitting SALT2 model using chisquared and MCMC
         # and fitting for t0.
-
-        # temporary for testing real data fits
 
         result_1, fitted_model_1 = chi_fit(data, model,
                                            ['t0', 'x0', 'x1', 'c'],
                                            minsnr=3.0,
-                                           # Bounds are for real data only, wrong distribution for simulations
-                                           #bounds={'x0': (0.0000000001, 10), 'x1': (-3, 3), 'c': (-0.3, 0.3)},
-                                           bounds={'x0': (0.0000000001, 20), 'x1': (-30, 30), 'c': (-10, 10)},
-                                           #bounds={'x0': (0.0000000001, 10), 'x1': (-3, 3), 'c': (-10, 10)},
+                                           # Bounds are rough at this fit step, full prior introduced in mcmc fit
+                                           bounds={'x0': (0.0000000001, 10), 'x1': (-3, 3), 'c': (-0.3, 0.3)},
                                             )
 
-        #delete this line when bringing mcmc back
-        #result = result_1
-
-
-
-        result, fitted_model = mcmc_fit(data, model,#fitted_model_1,
+        result, fitted_model = mcmc_fit(data, fitted_model_1,
                                             # Parameters of model to vary.
                                             ['t0', 'x0', 'x1', 'c'],
                                             minsnr=3.0,
-                                            # Bounds are for real data only, wrong distribution for simulations
-                                            bounds={'x0': (0.000001, 10), 'x1': (-3, 3), 'c': (-10, 10)},
+                                            # Bounds are rough
+                                            #bounds={'x0': (0.000001, 10), 'x1': (-3, 3), 'c': (-0.3, 0.3)},
+                                            nwalkers=10, nburn=200, nsamples=1000,
                                             guess_t0=False,
                                             guess_amplitude=False,
                                             )
@@ -1038,13 +1057,15 @@ def fit_util_lc(data, index, folder, coords_in, z, t0):
     else:
         # Fitting SALT2 model using chisquared and MCMC
         # and setting starting guess for t0 manually (should be fitted t0 from Kepler)
-
-        model.set(t0=t0)
+        # print "t0_in:%s"%t0_in
+        model.set(t0=t0_in)
 
         result_1, fitted_model_1 = chi_fit(data, model,
                                            ['x0', 'x1', 'c'],
                                            minsnr=3.0,
                                            guess_t0=False,
+                                           # Bounds are rough at this fit step, full prior introduced in mcmc fit
+                                           bounds={'x0': (0.0000000001, 10), 'x1': (-3, 3), 'c': (-0.3, 0.3)},
                                            )
 
         result, fitted_model = mcmc_fit(data, fitted_model_1,
@@ -1053,6 +1074,9 @@ def fit_util_lc(data, index, folder, coords_in, z, t0):
                                             minsnr=3.0,
                                             guess_t0=False,
                                             guess_amplitude=False,
+                                            nwalkers=10, nburn=200, nsamples=1000
+                                            # Bounds are rough at this fit step, full prior introduced in mcmc fit
+                                            #bounds={'x0': (0.0000000001, 10), 'x1': (-3, 3), 'c': (-0.3, 0.3)}
                                             )
 
         # # This needs bounds handled
@@ -1065,6 +1089,7 @@ def fit_util_lc(data, index, folder, coords_in, z, t0):
         #                                     )
 
     fitted_t0 = result.parameters[1]
+    # print "fitted t0:%s"%fitted_t0
 
     fitted_params = dict([(result.param_names[0], result.parameters[0]),
                           (result.param_names[1], result.parameters[1]),
@@ -1077,6 +1102,11 @@ def fit_util_lc(data, index, folder, coords_in, z, t0):
 
     # Use PdfPages if saving as a pdf (ensure to change plotname)
     #pp = PdfPages(plotname)
+
+    fig = sncosmo.plot_lc(data, format='png')
+
+    plt.savefig(plotname + '_data.png')
+    plt.close(fig)
 
     fig = sncosmo.plot_lc(data, model=fitted_model_1,
                           errors=result_1.errors, format='png',

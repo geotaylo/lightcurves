@@ -12,7 +12,7 @@ run_sncosmo.py.  Can be edited to suit user.
 import heaven_and_earth as run
 
 # Number of SN to simulate (if using sncosmo distribution, use 0).
-nSNe = 10
+nSNe = 1
 
 # Kepler campaign (if using SNCosmo dist.)
 campaign = 0
@@ -98,7 +98,7 @@ print'attempting KST fits:'
 kepler_time = run.fit_snlc(run3, parent_folder, child_folder=child_folder_3)
 
 print'attempting well-sampled combined fits:'
-run.fit_snlc(run4, parent_folder, child_folder=child_folder_4, t0=kepler_time)
+run.fit_snlc(run4, parent_folder, child_folder=child_folder_4, t0_in=kepler_time)
 
 print'attempting poorly-sampled combined fits:'
-run.fit_snlc(run5, parent_folder, child_folder=child_folder_5, t0=kepler_time)
+run.fit_snlc(run5, parent_folder, child_folder=child_folder_5, t0_in=kepler_time)
