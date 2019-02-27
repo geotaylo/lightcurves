@@ -9,17 +9,17 @@ run_sncosmo.py.  Can be edited to suit user.
 > THEN fits SALT2 model to observations.
 """
 
-import heaven_and_earth as run
+import smcosmo as run
 
 # Number of SN to simulate (if using sncosmo distribution, use 0).
-nSNe = 1
+nSNe = 10
 
 # Kepler campaign (if using SNCosmo dist.)
 campaign = 0
 
 # Path to store info about whole observing set, used by each run.
 # ENSURE / is at end of path!
-parent_folder = 'Honours_data_sets/test/'
+parent_folder = '2019-sets/priortest/'
 
 # Paths to store individual runs
 # ENSURE / is at end of path!
