@@ -12,14 +12,15 @@ run_sncosmo.py.  Can be edited to suit user.
 import smcosmo as run
 
 # Number of SN to simulate (if using sncosmo distribution, use 0).
-nSNe = 10
+nSNe = 1
 
 # Kepler campaign (if using SNCosmo dist.)
 campaign = 0
 
 # Path to store info about whole observing set, used by each run.
 # ENSURE / is at end of path!
-parent_folder = '2019-sets/priortest/'
+parent_folder = '2019-sets/multimods/'
+#parent_folder = '2019-sets/feb-1000/lowz_g10/'
 
 # Paths to store individual runs
 # ENSURE / is at end of path!
@@ -39,23 +40,23 @@ nSNe = run.simulate_sn_set(parent_folder, nSNe, campaign)
 print 'attempting well-sampled SM simulations:'
 
 run1 = run.simulate_lc(parent_folder, child_folder=child_folder_1,
-                      scope='sm', sm_cad='well-sampled', follow_up=False)
-
-print 'attempting poorly-sampled SM simulations'
-run2 = run.simulate_lc(parent_folder, child_folder=child_folder_2,
-                      scope='sm', sm_cad='poorly-sampled', follow_up=False)
-
-print'attempting KST simulations:'
-run3 = run.simulate_lc(parent_folder, child_folder=child_folder_3,
-                      scope='kst', follow_up=False)
-
-print 'attempting well-sampled SM + KST combined simulations'
-run4 = run.combine_scopes(parent_folder, child_folder_1, child_folder_3,
-                         child_folder_4, nSNe)
-
-print 'attempting poorly-sampled SM + KST combined simulations'
-run5 = run.combine_scopes(parent_folder, child_folder_2, child_folder_3,
-                         child_folder_5, nSNe)
+                      scope='sm', sm_cad='well-sampled')
+#
+# print 'attempting poorly-sampled SM simulations'
+# run2 = run.simulate_lc(parent_folder, child_folder=child_folder_2,
+#                       scope='sm', sm_cad='poorly-sampled')
+#
+# print'attempting KST simulations:'
+# run3 = run.simulate_lc(parent_folder, child_folder=child_folder_3,
+#                       scope='kst')
+#
+# print 'attempting well-sampled SM + KST combined simulations'
+# run4 = run.combine_scopes(parent_folder, child_folder_1, child_folder_3,
+#                          child_folder_4, nSNe)
+#
+# print 'attempting poorly-sampled SM + KST combined simulations'
+# run5 = run.combine_scopes(parent_folder, child_folder_2, child_folder_3,
+#                          child_folder_5, nSNe)
 
 # Write observational parameters
 run.write_params(parent_folder, nSNe)
@@ -90,15 +91,15 @@ run.write_params(parent_folder, nSNe)
 # Fit SALT2 models to list of observed light curves.
 print'attempting well-sampled SM fits:'
 run.fit_snlc(run1, parent_folder, child_folder=child_folder_1)
-
-print'attempting poorly-sampled SM fits:'
-run.fit_snlc(run2, parent_folder, child_folder=child_folder_2)
-
-print'attempting KST fits:'
-kepler_time = run.fit_snlc(run3, parent_folder, child_folder=child_folder_3)
-
-print'attempting well-sampled combined fits:'
-run.fit_snlc(run4, parent_folder, child_folder=child_folder_4, t0_in=kepler_time)
-
-print'attempting poorly-sampled combined fits:'
-run.fit_snlc(run5, parent_folder, child_folder=child_folder_5, t0_in=kepler_time)
+#
+# print'attempting poorly-sampled SM fits:'
+# run.fit_snlc(run2, parent_folder, child_folder=child_folder_2)
+#
+# print'attempting KST fits:'
+# kepler_time = run.fit_snlc(run3, parent_folder, child_folder=child_folder_3)
+#
+# print'attempting well-sampled combined fits:'
+# run.fit_snlc(run4, parent_folder, child_folder=child_folder_4, t0_in=kepler_time)
+#
+# print'attempting poorly-sampled combined fits:'
+# run.fit_snlc(run5, parent_folder, child_folder=child_folder_5, t0_in=kepler_time)

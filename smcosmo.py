@@ -47,9 +47,7 @@ from astropy.table import Table, vstack
 from scipy.stats import exponweib
 from matplotlib.backends.backend_pdf import PdfPages
 
-""" Important edit notes:
-    - SM observable candidate range: RA(0-360), Dec(-90,10)
-"""
+
 
 
 # --- The parameters below are safe to change - make sure to check they are correct before running a big simulation! ---
@@ -627,55 +625,83 @@ def simulate_sn_set(folder, nSNe=0, campaign=0):
         to_sm = np.random.randint(25, 65)
         t_obs_sm = copy.deepcopy(to_sm)
 
-        # Observation times
-            # Well sampled
-        time_hold_ws = params[t].get('t0') + td_sm
+        # ---- Observation characteristics for every day in observing window ----
+        all_sm_days = np.arange(params[t].get('t0') + td_sm, params[t].get('t0') + td_sm + to_sm, 1)
+
+        # Zero points
+        # For standard filter set (g, r, i) - used in 'bad seeing'
+        # NOTE - good vs bad definition here is a bit murky but it honestly probably doesn't matter.
+        zp_g_bad = (np.random.normal(26.82, 0.79, len(all_sm_days)))
+        zp_i_bad = (np.random.normal(25.21, 0.36, len(all_sm_days)))
+        zp_r_bad = (np.random.normal(26.71, 0.76, len(all_sm_days)))
+        # For extended filter set (g, r, i, v) - used in 'good seeing'
+        zp_g_good = (np.random.normal(26.87, 0.68, len(all_sm_days)))
+        zp_i_good = (np.random.normal(25.85, 0.81, len(all_sm_days)))
+        zp_r_good = (np.random.normal(26.63, 0.67, len(all_sm_days)))
+        zp_v_good = (np.random.normal(24.91, 0.70, v_obs))
+
+        # Skynoise
+        sn_all = get_skynoise(len(all_sm_days))
+
+        # ---- Select 'well-sampled' days ----
+        ws_counter = 0
+        # dates of observations
         t_sm_ws = []
-        while time_hold_ws <= (params[t].get('t0') + td_sm + to_sm):
-            t_sm_ws.append(time_hold_ws)
-            time_hold_ws = time_hold_ws + random.randint(1, 2)
-            # Poorly sampled
-        time_hold_ps = params[t].get('t0') + td_sm
+        # containers for well-sampled zeropoints
+        zp_g_good_ws = []
+        zp_r_good_ws = []
+        zp_i_good_ws = []
+        zp_g_bad_ws = []
+        zp_r_bad_ws = []
+        zp_i_bad_ws = []
+        sn_all_ws = []
+
+        while ws_counter < len(all_sm_days):
+            t_sm_ws.append(all_sm_days[ws_counter])
+            zp_g_good_ws.append(zp_g_good[ws_counter])
+            zp_r_good_ws.append(zp_r_good[ws_counter])
+            zp_i_good_ws.append(zp_i_good[ws_counter])
+            zp_g_bad_ws.append(zp_g_bad[ws_counter])
+            zp_r_bad_ws.append(zp_r_bad[ws_counter])
+            zp_i_bad_ws.append(zp_i_bad[ws_counter])
+            sn_all_ws.append(sn_all[ws_counter])
+            ws_counter += + random.randint(1, 2)
+
+        # ---- Select 'poorly-sampled' days ----
+        ps_counter = 0
+        # dates of observations
         t_sm_ps = []
-        while time_hold_ps <= (params[t].get('t0') + td_sm + to_sm):
-            t_sm_ps.append(time_hold_ps)
-            time_hold_ps = time_hold_ps + random.randint(3, 5)
+        # containers for well-sampled zeropoints
+        zp_g_good_ps = []
+        zp_r_good_ps = []
+        zp_i_good_ps = []
+        zp_g_bad_ps = []
+        zp_r_bad_ps = []
+        zp_i_bad_ps = []
+        sn_all_ps = []
+
+        while ps_counter < len(all_sm_days):
+            t_sm_ps.append(all_sm_days[ps_counter])
+            zp_g_good_ps.append(zp_g_good[ps_counter])
+            zp_r_good_ps.append(zp_r_good[ps_counter])
+            zp_i_good_ps.append(zp_i_good[ps_counter])
+            zp_g_bad_ps.append(zp_g_bad[ps_counter])
+            zp_r_bad_ps.append(zp_r_bad[ps_counter])
+            zp_i_bad_ps.append(zp_i_bad[ps_counter])
+            sn_all_ps.append(sn_all[ps_counter])
+            ps_counter += + random.randint(3,5)
+
+        # Final groupings
+        sn_gri = [sn_all_ws * 3, sn_all_ps * 3]
+        sn_griv = [sn_all_ws * 4, sn_all_ps * 4]
+        zp_griv = [[zp_g_good_ws, zp_i_good_ws, zp_r_good_ws, zp_v_good],
+                   [zp_g_good_ps, zp_i_good_ps, zp_r_good_ps, zp_v_good]]
+        zp_gri = [[zp_g_bad_ws, zp_i_bad_ws, zp_r_bad_ws], [zp_g_bad_ps, zp_i_bad_ps, zp_r_bad_ps]]
 
         n_obs_sm = [len(t_sm_ws), len(t_sm_ps)]
         time_sm = [t_sm_ws, t_sm_ps]
 
-        # Zero points
-        # For standard filter set (g, r, i) - used in 'bad seeing'
-        zp_g_bad_ws = (np.random.normal(26.82, 0.79, len(t_sm_ws)))
-        zp_i_bad_ws = (np.random.normal(25.21, 0.36, len(t_sm_ws)))
-        zp_r_bad_ws = (np.random.normal(26.71, 0.76, len(t_sm_ws)))
-        zp_g_bad_ps = (np.random.normal(26.82, 0.79, len(t_sm_ps)))
-        zp_i_bad_ps = (np.random.normal(25.21, 0.36, len(t_sm_ps)))
-        zp_r_bad_ps = (np.random.normal(26.71, 0.76, len(t_sm_ps)))
-        zp_gri = [[zp_g_bad_ws, zp_i_bad_ws, zp_r_bad_ws], [zp_g_bad_ps, zp_i_bad_ps, zp_r_bad_ps]]
-
-        # For extended filter set (g, r, i, v) - used in 'good seeing'
-        zp_g_good_ws = (np.random.normal(26.87, 0.68, len(t_sm_ws)))
-        zp_i_good_ws = (np.random.normal(25.85, 0.81, len(t_sm_ws)))
-        zp_r_good_ws = (np.random.normal(26.63, 0.67, len(t_sm_ws)))
-        zp_g_good_ps = (np.random.normal(26.87, 0.68, len(t_sm_ps)))
-        zp_i_good_ps = (np.random.normal(25.85, 0.81, len(t_sm_ps)))
-        zp_r_good_ps = (np.random.normal(26.63, 0.67, len(t_sm_ps)))
-        zp_v_good = (np.random.normal(24.91, 0.70, v_obs))
-        zp_griv = [[zp_g_good_ws, zp_i_good_ws, zp_r_good_ws, zp_v_good],[zp_g_good_ps, zp_i_good_ps, zp_r_good_ps, zp_v_good]]
-
-        # Skynoise
-        # For standard filter set (g, r, i) - used in 'bad seeing'
-        sn_all_ws = [get_skynoise(len(t_sm_ws))]
-        sn_all_ps = [get_skynoise(len(t_sm_ps))]
-        sn_gri = [sn_all_ws*3, sn_all_ps*3]
-
-        # For extended filter set (g, r, i, v) - used in 'good seeing'
-
-        sn_griv = [sn_all_ws*4, sn_all_ps*4]
-
-
-        # KEPLER--------------------
+        # -------------------------- KST --------------------------
         if campaign == 0:
             # Time of init detection (before t0)
             td_k = np.random.randint(-17, -15)
@@ -764,7 +790,7 @@ def simulate_lc(parent_folder, child_folder='TestFiles/', scope='sm', sm_cad='we
 
     # Maintenance.
     child_folder = parent_folder + child_folder
-    filters.register_filters()
+    # filters.register_filters()
     ensure_dir(child_folder)
 
     bands = []
@@ -888,11 +914,10 @@ def simulate_lc(parent_folder, child_folder='TestFiles/', scope='sm', sm_cad='we
             zp = [zp_k[t]]
 
             # Sets skynoise
-            skynoise = [sn_k[t]]
+            skynoise = sn_k[t]
 
         # Flattening lists of lists
         observing_time = o_t
-        skynoise = [item for sublist in skynoise for item in sublist]
         zp = [item for sublist in zp for item in sublist]
 
         observing_dictionary = {'band': observing_bands,
@@ -939,7 +964,7 @@ def get_lc(filelist):
         Note - for this method you'll need to generate SN coords using
         simulate_sn_set() before using fit_snlc()"""
 
-    filters.register_filters()
+    # filters.register_filters()
 
     lcs = []
 
@@ -988,6 +1013,11 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/', t0_in=0):
 
     """ Utility function for fitting lightcurves to
     observations of multiple SN """
+
+    # Handling grabbing true parameters for 'true' model plots
+    sn_dict = load_obj(parent_folder + 'sn_dict')
+    params = sn_dict['Parameters']
+    print params
 
     folder = parent_folder + child_folder
     ensure_dir(folder)
@@ -1118,7 +1148,7 @@ def fit_util_lc(data, index, folder, coords_in, z, t0_in):
         # and fitting for t0.
 
         result_1, fitted_model_1 = chi_fit(data, model,
-                                           ['t0', 'x0', 'x1', 'c'],
+                                           ['t0', 'x0', 'x1', 'c', 'hostebv'],
                                            minsnr=3.0,
                                            # Bounds are rough at this fit step, full prior introduced in mcmc fit
                                            bounds={'x0': (0.0000000001, 10), 'x1': (-3, 3), 'c': (-0.3, 0.3)}
@@ -1126,7 +1156,7 @@ def fit_util_lc(data, index, folder, coords_in, z, t0_in):
 
         result, fitted_model = mcmc_fit(data, fitted_model_1,
                                             # Parameters of model to vary.
-                                            ['t0', 'x0', 'x1', 'c'],
+                                            ['t0', 'x0', 'x1', 'c', 'hostebv'],
                                             minsnr=3.0,
                                             priors={'x1': one_skew_prob_x1, 'c': one_skew_prob_c},
                                             nwalkers=10, nburn=200, nsamples=1000,
@@ -1142,7 +1172,7 @@ def fit_util_lc(data, index, folder, coords_in, z, t0_in):
         model.set(t0=t0_in)
 
         result_1, fitted_model_1 = chi_fit(data, model,
-                                           ['x0', 'x1', 'c'],
+                                           ['x0', 'x1', 'c', 'hostebv'],
                                            minsnr=3.0,
                                            guess_t0=False,
                                            # Bounds are rough at this fit step, full prior introduced in mcmc fit
@@ -1151,7 +1181,7 @@ def fit_util_lc(data, index, folder, coords_in, z, t0_in):
 
         result, fitted_model = mcmc_fit(data, fitted_model_1,
                                             # Parameters of model to vary.
-                                            ['t0', 'x0', 'x1', 'c'],
+                                            ['t0', 'x0', 'x1', 'c', 'hostebv'],
                                             minsnr=3.0,
                                             guess_t0=False,
                                             guess_amplitude=False,
@@ -1174,17 +1204,17 @@ def fit_util_lc(data, index, folder, coords_in, z, t0_in):
     # Use PdfPages if saving as a pdf (ensure to change plotname)
     #pp = PdfPages(plotname)
 
-    fig = sncosmo.plot_lc(data, format='png')
-
-    plt.savefig(plotname + '_data.png')
-    plt.close(fig)
-
-    fig = sncosmo.plot_lc(data, model=fitted_model_1,
-                          errors=result_1.errors, format='png',
-                          )
-
-    plt.savefig(plotname + '_chi.png')
-    plt.close(fig)
+    # fig = sncosmo.plot_lc(data, format='png')
+    #
+    # plt.savefig(plotname + '_data.png')
+    # plt.close(fig)
+    #
+    # fig = sncosmo.plot_lc(data, model=fitted_model_1,
+    #                       errors=result_1.errors, format='png',
+    #                       )
+    #
+    # plt.savefig(plotname + '_chi.png')
+    # plt.close(fig)
 
     fig = sncosmo.plot_lc(data, model=fitted_model,
                     errors=result.errors, format='png'
