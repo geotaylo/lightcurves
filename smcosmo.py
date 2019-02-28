@@ -45,6 +45,7 @@ from astropy.cosmology import FlatLambdaCDM
 from astropy.extern.six.moves import range
 from astropy.table import Table, vstack
 from scipy.stats import exponweib
+from matplotlib import cm
 from matplotlib.backends.backend_pdf import PdfPages
 
 
@@ -67,7 +68,7 @@ v_obs = 0
 
 # Skymapper min and max observable redshift, representing redshift bounds for simulations.
 zmin = 0.001
-zmax = 0.15
+zmax = 0.01
 
 # Parameter distribution to use for c and x1 (from Scolnic and Kessler 2016, Table 1)
 # NOTE: options are 'lowz_g10', 'lowz_c11', 'ps1_g10', 'ps1_c11' (reflecting sample and intrinsic scatter model)
@@ -87,12 +88,28 @@ dustmap = sfdmap.SFDMap("/Users/macloan4/GTaylor/lightcurves/sfddata-master")
 # Fitzpatrick 99 reddening law with Rv=3.1, as prescribed in Schlafly and Finkbeiner 2011.
 dust = sncosmo.F99Dust()
 
-# Salt2 model template (assuming most recent version i.e. JLA training)
-model = sncosmo.Model(source='salt2',
+# Salt2 model template (using most recent version i.e. JLA training)
+
+source = sncosmo.get_source('salt2', version='2.4')
+model = sncosmo.Model(source=source,
                       effects=[dust, dust],
                       effect_names=['host', 'mw'],
                       effect_frames=['rest', 'obs'])
 
+truemodel = sncosmo.Model(source=source,
+                      effects=[dust, dust],
+                      effect_names=['host', 'mw'],
+                      effect_frames=['rest', 'obs'])
+
+truemodel_dust = sncosmo.Model(source=source,
+                      effects=[dust, dust],
+                      effect_names=['host', 'mw'],
+                      effect_frames=['rest', 'obs'])
+
+truemodel_alldust = sncosmo.Model(source=source,
+                      effects=[dust, dust],
+                      effect_names=['host', 'mw'],
+                      effect_frames=['rest', 'obs'])
 
 # -------------------------------------------------- Utility functions -------------------------------------------------
 
@@ -121,6 +138,7 @@ def ensure_dir(f):
 def get_coords(nSNe, ra_range=0, dec_range=0):
     """ Generates random j2000 degree coordinates for SN
         Default values use SkyMapper observable range
+        Also returns dust at coordinate
     """
 
     if ra_range == 0:
@@ -134,7 +152,9 @@ def get_coords(nSNe, ra_range=0, dec_range=0):
         # Declination
         dec = np.random.uniform(dec_range[0], dec_range[1], nSNe).tolist()
     coords = [ra, dec]
-    return coords
+    # dust value
+    ebv = dustmap.ebv(ra, dec, frame='fk5j2000', unit='degree')
+    return coords, ebv
 
 def get_skynoise(n):
     """ Calculates static skynoise in counts (background contribution to flux measurement error), assuming
@@ -551,8 +571,7 @@ def simulate_sn_set(folder, nSNe=0, campaign=0):
         z = list(sncosmo.zdist(zmin, zmax, time=(tmax - tmin), area=100))
         nSNe = len(z)
         # Equatorial coordinates
-        coords = get_coords(nSNe, ra, dec)
-        print coords
+        coords, mwdust = get_coords(nSNe, ra, dec)
         print 'Obtained %s' % nSNe + ' redshifts from sncosmo distribution. \n'
     else:
         # Set number of SN and generate redshift (for statistical sample) from SNCosmo distribution using modified
@@ -564,7 +583,7 @@ def simulate_sn_set(folder, nSNe=0, campaign=0):
         tmax = tmin + 365
         z = list(modified_zdist(zmin, zmax, nSNe))
         # Equatorial coordinates
-        coords = get_coords(nSNe)
+        coords, mwdust = get_coords(nSNe)
         print 'Obtained %s' % nSNe + ' redshifts from SNCosmo distribution. \n'
 
     # t0 = observer-frame time corresponding to source's phase=0 (mjd).
@@ -608,7 +627,7 @@ def simulate_sn_set(folder, nSNe=0, campaign=0):
         model.set_source_peakabsmag(mabs, 'bessellb', 'ab')
         # x0 obtained from SNCosmo method
         x0 = model.get('x0')
-        p = {'z': z[i], 't0': t0[i], 'x0': x0, 'x1': x1[i], 'c': c[i]}
+        p = {'z': z[i], 't0': t0[i], 'x0': x0, 'x1': x1[i], 'c': c[i], 'mwebv': mwdust[i]}
         params.append(p)
 
     # ---------------------------------------------- Observing parameters ----------------------------------------------
@@ -745,40 +764,8 @@ def simulate_sn_set(folder, nSNe=0, campaign=0):
     print 'Properties of simulation saved in %ssn_dict.pkl' % folder
     return nSNe
 
-def make_sn_dict(folder, redshift, ra, dec):
 
-    """ Parallel method to simulate_sn_set in the main build, to produce a dictionary of SN properties for real data
-        redshift = list of redshifts
-        ra = list of right ascensions
-        dec = list of declinations
-        make sure the order is correct :)
-    """
-
-    ensure_dir(folder)
-
-    params = []
-    observations = []
-
-    # Supernova parameters ----------------------------------------------
-
-    nSNe = len(redshift)
-    # z = redshift
-    coords = [ra,dec]
-
-    # This is redundant, just in for now for consistency with real code
-    for i in range(nSNe):
-        p = {'z': redshift[i]}
-        params.append(p)
-
-    # Save as dictionary ----------------------------------------------
-    dict_out = {'Parameters': params, 'Coordinates': coords,
-                'Observations': observations, 'nSNe': nSNe}
-    save_obj(dict_out, folder + 'sn_dict')
-    print 'Properties of SN saved in %ssn_dict.pkl' % folder
-    return nSNe
-
-
-# B: SIMULATING OBSERVATIONS --------------------------------------------------
+# ----------------------------------------------- Simulating Observations ----------------------------------------------
 
 def simulate_lc(parent_folder, child_folder='TestFiles/', scope='sm', sm_cad='well-sampled'):
     """ Simulate 'observed' light-curves.
@@ -1014,11 +1001,6 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/', t0_in=0):
     """ Utility function for fitting lightcurves to
     observations of multiple SN """
 
-    # Handling grabbing true parameters for 'true' model plots
-    sn_dict = load_obj(parent_folder + 'sn_dict')
-    params = sn_dict['Parameters']
-    print params
-
     folder = parent_folder + child_folder
     ensure_dir(folder)
 
@@ -1052,7 +1034,7 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/', t0_in=0):
         try:
             coords_out = [el[i] for el in coords_in]
             z = params[i]['z']
-            p, fitted_t0, err = fit_util_lc(lightcurve[i], i + 1, folder, coords_out, z, t0_in[i])
+            p, fitted_t0, err = fit_util_lc(lightcurve[i], i + 1, folder, coords_out, z, t0_in[i], params[i])
 
             explosion_time.append(fitted_t0)
 
@@ -1126,7 +1108,7 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/', t0_in=0):
     return explosion_time
 
 
-def fit_util_lc(data, index, folder, coords_in, z, t0_in):
+def fit_util_lc(data, index, folder, coords_in, z, t0_in, sndict):
 
     """ Fits SALT2 light curve to a supernova observation
         Plots model, data and residuals """
@@ -1135,13 +1117,16 @@ def fit_util_lc(data, index, folder, coords_in, z, t0_in):
 
     plotname = folder + 'fitted_lc_%s' % index
 
+    # Fix MW dust (not fitted, we assume this is perfectly known from maps)
     ebv = dustmap.ebv(coords_in[0], coords_in[1], frame = 'fk5j2000', unit='degree')
 
     model.set(mwebv=ebv)
 
-    # Hold Z
+    # Hold Z (not fitted, we assume this is perfectly known from spectra)
     model.set(z=z)
 
+    # Correct for previous setting of x0
+    model.set(x0=0.0000000001)
 
     if t0_in == 0:
         # Fitting SALT2 model using chisquared and MCMC
@@ -1216,12 +1201,30 @@ def fit_util_lc(data, index, folder, coords_in, z, t0_in):
     # plt.savefig(plotname + '_chi.png')
     # plt.close(fig)
 
-    fig = sncosmo.plot_lc(data, model=fitted_model,
-                    errors=result.errors, format='png'
-                    )
+    #truemodel handling (test)
 
-    plt.savefig(plotname +'_mcmc.png')
+
+    truemodel_dust.update(sndict)
+
+    truemodel_dust.set(mwebv=ebv)
+
+    truemodel_alldust.update(sndict)
+
+    truemodel_alldust.set(mwebv=ebv)
+
+    truemodel_alldust.set(hostebv=fitted_model.get('hostebv'))
+
+    cols = cm.get_cmap('hsv')
+
+    plt.style.use('seaborn-paper')
+    fig = sncosmo.plot_lc(data, model=(fitted_model, truemodel_dust, truemodel_alldust), errors=result.errors,
+                          model_label=("fitted", "truth_mwdust", "truth_alldust"),
+                          format='png', cmap=cols, pulls=False
+                          )
+
+    plt.savefig(plotname + '_fitted.png')
     plt.close(fig)
+
 
     # pp.close()
 
