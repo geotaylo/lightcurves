@@ -33,8 +33,6 @@ import matplotlib.pyplot as plt
 import sfdmap
 import sncosmo
 import copy
-# filters.py should be in working directory
-import filters
 from shutil import copyfile
 from sncosmo import mcmc_lc as mcmc_fit
 from sncosmo import fit_lc as chi_fit
@@ -47,13 +45,13 @@ from astropy.table import Table, vstack
 from scipy.stats import exponweib
 from matplotlib import cm
 from matplotlib.backends.backend_pdf import PdfPages
-
-
+from sncosmo.utils import format_value
 
 
 # --- The parameters below are safe to change - make sure to check they are correct before running a big simulation! ---
 
 
+#! Currently not used, both cadences are generated for each run.
 # SkyMapper observing cadence (days)
 # NOTE: for SM cadence to vary randomly between 1 and 2 days, cad_sm = 'well-sampled'
 #       for SM cadence to vary randomly betwen 3 and 5 days, cad_sm = 'poorly-sampled'
@@ -68,7 +66,7 @@ v_obs = 0
 
 # Skymapper min and max observable redshift, representing redshift bounds for simulations.
 zmin = 0.001
-zmax = 0.01
+zmax = 0.15
 
 # Parameter distribution to use for c and x1 (from Scolnic and Kessler 2016, Table 1)
 # NOTE: options are 'lowz_g10', 'lowz_c11', 'ps1_g10', 'ps1_c11' (reflecting sample and intrinsic scatter model)
@@ -77,6 +75,7 @@ zmax = 0.01
 lcdist = 'lowz_g10'
 
 # Change path to location of dustmaps (must be downloaded first)
+# SFD map is Shlegel et al with correction prescribed in Schlafly and Finkbeiner 2011.
 dustmap = sfdmap.SFDMap("/Users/macloan4/GTaylor/lightcurves/sfddata-master")
 #dustmap = sfdmap.SFDMap("/home/georgie/sfddata-master")#thinkpad
 #dustmap = sfdmap.SFDMap("/home/gtaylor/sfddata-master")#motley
@@ -89,27 +88,18 @@ dustmap = sfdmap.SFDMap("/Users/macloan4/GTaylor/lightcurves/sfddata-master")
 dust = sncosmo.F99Dust()
 
 # Salt2 model template (using most recent version i.e. JLA training)
+# MW dust modeled, host galaxy dust ignored for now (it's too uncertain).
 
 source = sncosmo.get_source('salt2', version='2.4')
 model = sncosmo.Model(source=source,
-                      effects=[dust, dust],
-                      effect_names=['host', 'mw'],
-                      effect_frames=['rest', 'obs'])
+                      effects=[dust],
+                      effect_names=['mw'],
+                      effect_frames=['obs'])
 
 truemodel = sncosmo.Model(source=source,
-                      effects=[dust, dust],
-                      effect_names=['host', 'mw'],
-                      effect_frames=['rest', 'obs'])
-
-truemodel_dust = sncosmo.Model(source=source,
-                      effects=[dust, dust],
-                      effect_names=['host', 'mw'],
-                      effect_frames=['rest', 'obs'])
-
-truemodel_alldust = sncosmo.Model(source=source,
-                      effects=[dust, dust],
-                      effect_names=['host', 'mw'],
-                      effect_frames=['rest', 'obs'])
+                      effects=[dust],
+                      effect_names=['mw'],
+                      effect_frames=['obs'])
 
 # -------------------------------------------------- Utility functions -------------------------------------------------
 
@@ -637,11 +627,11 @@ def simulate_sn_set(folder, nSNe=0, campaign=0):
 
         # -------------------------- SKYMAPPER --------------------------
         # Time of initial detection (mjd) (2 - 15 days BEFORE peak)
-        td_sm = np.random.randint(-15, -2)
+        td_sm = np.random.randint(-15, -1)
         t_det_sm = copy.deepcopy(td_sm)
 
         # Total observing period (days)
-        to_sm = np.random.randint(25, 65)
+        to_sm = np.random.randint(25, 66)
         t_obs_sm = copy.deepcopy(to_sm)
 
         # ---- Observation characteristics for every day in observing window ----
@@ -684,7 +674,8 @@ def simulate_sn_set(folder, nSNe=0, campaign=0):
             zp_r_bad_ws.append(zp_r_bad[ws_counter])
             zp_i_bad_ws.append(zp_i_bad[ws_counter])
             sn_all_ws.append(sn_all[ws_counter])
-            ws_counter += + random.randint(1, 2)
+            # np.random.randint is [), this therefore goes between 1 or 2
+            ws_counter += np.random.randint(1, 3)
 
         # ---- Select 'poorly-sampled' days ----
         ps_counter = 0
@@ -708,7 +699,7 @@ def simulate_sn_set(folder, nSNe=0, campaign=0):
             zp_r_bad_ps.append(zp_r_bad[ps_counter])
             zp_i_bad_ps.append(zp_i_bad[ps_counter])
             sn_all_ps.append(sn_all[ps_counter])
-            ps_counter += + random.randint(3,5)
+            ps_counter += + random.randint(3,6)
 
         # Final groupings
         sn_gri = [sn_all_ws * 3, sn_all_ps * 3]
@@ -723,9 +714,9 @@ def simulate_sn_set(folder, nSNe=0, campaign=0):
         # -------------------------- KST --------------------------
         if campaign == 0:
             # Time of init detection (before t0)
-            td_k = np.random.randint(-17, -15)
+            td_k = np.random.randint(-17, -14)
             # Total observing period (days)
-            to_k = np.random.randint(80, 85)
+            to_k = np.random.randint(80, 86)
         else:
             # Time of init detection (before t0)
             td_k = params[t].get('t0')-tmin
@@ -777,7 +768,6 @@ def simulate_lc(parent_folder, child_folder='TestFiles/', scope='sm', sm_cad='we
 
     # Maintenance.
     child_folder = parent_folder + child_folder
-    # filters.register_filters()
     ensure_dir(child_folder)
 
     bands = []
@@ -1061,7 +1051,7 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/', t0_in=0):
             ef.write('SN%s: \n' %(i+1))
 
             # Add fitted parameters as 0 for all (to fix indexing issue when using fitted t0 values)
-            ff.write('SN%s: c:0 t0:0 x0:0 x1:0 z:0 \n' %(i+1))
+            ff.write('SN%s: c:0 mwebv:0 t0:0 x0:0 x1:0 z:0 \n' %(i+1))
             af.write('SN%s: c:0 t0:0 x0:0 x1:0\n' %(i+1))
             explosion_time.append(0)
 
@@ -1076,13 +1066,13 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/', t0_in=0):
             ef.write('SN%s: \n' %(i+1))
 
             # Add fitted parameters as 0 for all (to fix indexing issue when using fitted t0 values)
-            ff.write('SN%s: c:0 t0:0 x0:0 x1:0 z:0 \n' %(i+1))
+            ff.write('SN%s: c:0 mwebv:0 t0:0 x0:0 x1:0 z:0 \n' %(i+1))
             af.write('SN%s: c:0 t0:0 x0:0 x1:0\n' %(i+1))
             explosion_time.append(0)
 
             # Write params to try track source of value error
             # Not 100% yet - probably needs to be inside util_lc instead.
-            vf.write('SN%s: c:0 t0:0 x0:0 x1:0 z:%s \n' %(i+1, z))
+            vf.write('SN%s: c:0 mwebv:0 t0:0 x0:0 x1:0 z:%s \n' %(i+1, z))
 
             pass
         except sncosmo.fitting.DataQualityError, e:
@@ -1092,8 +1082,8 @@ def fit_snlc(lightcurve, parent_folder, child_folder='TestFiles/', t0_in=0):
             snrf.write('SN%s: \n' % (i + 1))
 
             # Add fitted parameters as 0 for all (to fix indexing issue when using fitted t0 values)
-            ff.write('SN%s: c:0 t0:0 x0:0 x1:0 z:0 \n' % (i + 1))
-            af.write('SN%s: c:0 t0:0 x0:0 x1:0\n' % (i + 1))
+            ff.write('SN%s: c:0 mwebv:0 t0:0 x0:0 x1:0 z:0 \n' % (i + 1))
+            af.write('SN%s: c:0 t0:0 x0:0 x1:0 \n' % (i + 1))
             explosion_time.append(0)
 
 
@@ -1133,7 +1123,7 @@ def fit_util_lc(data, index, folder, coords_in, z, t0_in, sndict):
         # and fitting for t0.
 
         result_1, fitted_model_1 = chi_fit(data, model,
-                                           ['t0', 'x0', 'x1', 'c', 'hostebv'],
+                                           ['t0', 'x0', 'x1', 'c'],
                                            minsnr=3.0,
                                            # Bounds are rough at this fit step, full prior introduced in mcmc fit
                                            bounds={'x0': (0.0000000001, 10), 'x1': (-3, 3), 'c': (-0.3, 0.3)}
@@ -1141,7 +1131,7 @@ def fit_util_lc(data, index, folder, coords_in, z, t0_in, sndict):
 
         result, fitted_model = mcmc_fit(data, fitted_model_1,
                                             # Parameters of model to vary.
-                                            ['t0', 'x0', 'x1', 'c', 'hostebv'],
+                                            ['t0', 'x0', 'x1', 'c'],
                                             minsnr=3.0,
                                             priors={'x1': one_skew_prob_x1, 'c': one_skew_prob_c},
                                             nwalkers=10, nburn=200, nsamples=1000,
@@ -1157,7 +1147,7 @@ def fit_util_lc(data, index, folder, coords_in, z, t0_in, sndict):
         model.set(t0=t0_in)
 
         result_1, fitted_model_1 = chi_fit(data, model,
-                                           ['x0', 'x1', 'c', 'hostebv'],
+                                           ['x0', 'x1', 'c'],
                                            minsnr=3.0,
                                            guess_t0=False,
                                            # Bounds are rough at this fit step, full prior introduced in mcmc fit
@@ -1166,7 +1156,7 @@ def fit_util_lc(data, index, folder, coords_in, z, t0_in, sndict):
 
         result, fitted_model = mcmc_fit(data, fitted_model_1,
                                             # Parameters of model to vary.
-                                            ['t0', 'x0', 'x1', 'c', 'hostebv'],
+                                            ['t0', 'x0', 'x1', 'c'],
                                             minsnr=3.0,
                                             guess_t0=False,
                                             guess_amplitude=False,
@@ -1175,13 +1165,13 @@ def fit_util_lc(data, index, folder, coords_in, z, t0_in, sndict):
                                             )
 
     fitted_t0 = result.parameters[1]
-    # print "fitted t0:%s"%fitted_t0
 
     fitted_params = dict([(result.param_names[0], result.parameters[0]),
                           (result.param_names[1], result.parameters[1]),
                           (result.param_names[2], result.parameters[2]),
                           (result.param_names[3], result.parameters[3]),
-                          (result.param_names[4], result.parameters[4])
+                          (result.param_names[4], result.parameters[4]),
+                          (result.param_names[5], result.parameters[5])
                           ])
 
     fitted_errors = result.errors
@@ -1202,27 +1192,34 @@ def fit_util_lc(data, index, folder, coords_in, z, t0_in, sndict):
     # plt.close(fig)
 
     #truemodel handling (test)
-
-
-    truemodel_dust.update(sndict)
-
-    truemodel_dust.set(mwebv=ebv)
-
-    truemodel_alldust.update(sndict)
-
-    truemodel_alldust.set(mwebv=ebv)
-
-    truemodel_alldust.set(hostebv=fitted_model.get('hostebv'))
+    truemodel.update(sndict)
 
     cols = cm.get_cmap('hsv')
 
+    figtext=[]
+    lines = []
+    for i in range(len(result.param_names)):
+        name = fitted_model.param_names[i]
+        lname = fitted_model.param_names_latex[i]
+        try:
+            v = format_value(fitted_model.parameters[i], result.errors.get(name), latex=True)
+            lines.append('${0} = {1}$'.format(lname, v))
+        except:
+            v = format_value(fitted_model.parameters[i], 0, latex=True)
+            lines.append('${0} = {1}$'.format(lname, v))
+
+    # Split lines into two columns.
+    n = len(fitted_model.param_names) - len(fitted_model.param_names) // 2
+    figtext.append('\n'.join(lines[:n]))
+    figtext.append('\n'.join(lines[n:]))
+
     plt.style.use('seaborn-paper')
-    fig = sncosmo.plot_lc(data, model=(fitted_model, truemodel_dust, truemodel_alldust), errors=result.errors,
-                          model_label=("fitted", "truth_mwdust", "truth_alldust"),
-                          format='png', cmap=cols, pulls=False
+    fig = sncosmo.plot_lc(data, model=(fitted_model, truemodel), errors=result.errors,
+                          model_label=("fitted", "true"), figtext = figtext,
+                          format='png', cmap=cols, pulls=False, tighten_ylim=True
                           )
 
-    plt.savefig(plotname + '_fitted.png')
+    plt.savefig(plotname + '.png')
     plt.close(fig)
 
 
