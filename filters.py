@@ -106,7 +106,6 @@ def register_filters():
     for line in leg.get_lines():
         line.set_linewidth(7.0)
     plt.savefig('filters.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
-    plt.show()
     return
 
 register_filters()

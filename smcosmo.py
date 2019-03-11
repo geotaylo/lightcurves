@@ -76,9 +76,9 @@ lcdist = 'lowz_g10'
 
 # Change path to location of dustmaps (must be downloaded first)
 # SFD map is Shlegel et al with correction prescribed in Schlafly and Finkbeiner 2011.
-dustmap = sfdmap.SFDMap("/Users/macloan4/GTaylor/lightcurves/sfddata-master")
+#dustmap = sfdmap.SFDMap("/Users/macloan4/GTaylor/lightcurves/sfddata-master")
 #dustmap = sfdmap.SFDMap("/home/georgie/sfddata-master")#thinkpad
-#dustmap = sfdmap.SFDMap("/home/gtaylor/sfddata-master")#motley
+dustmap = sfdmap.SFDMap("/home/gtaylor/sfddata-master")#motley
 
 
 # ---------------- You can change the below parameters if you must, but it'll probably break something -----------------
