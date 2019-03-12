@@ -22,7 +22,7 @@ campaign = 0
 
 # Path to store info about whole observing set, used by each run.
 # ENSURE / is at end of path!
-#parent_folder = '2019-sets/finaltest2/'
+#parent_folder = '2019-sets/c11_test/'
 parent_folder = '2019-sets/march-1000/lowz_g10/'
 
 # Paths to store individual runs

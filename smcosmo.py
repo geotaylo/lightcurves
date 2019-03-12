@@ -1,13 +1,11 @@
 """
 smcosmo: simulating SkyMapper (sm) supernova cosmology using SNCosmo.
 u6253153@anu.edu.au,  2016 - 2019
-
 Aims to:
 - Generate a random, realistic set of type 1a supernovae.
 - Simulate SkyMapper and Kepler Space Telescope observations of these supernovae, using SNCosmo.
 - Fit SALT2 light-curve models to various combinations of these observations, to recover supernovae parameters (x1, x0, t0, c).
 - Analyse how each 'combination' of observations performed (separate script)
-
 Packaged with:
 - converting_data.py (converts KST photometry to a readable format for this program)
 - distance_wrapper.py (wrapper for luminosity_distance_fitter)
@@ -16,7 +14,6 @@ Packaged with:
 - real_data_wrapper (wrapper for fitting real KST data, must be converted first - mainly an example script)
 - statistical_analysis.py (produces residual plots etc. to evaluate quality of fits)
 - wrapper.py (wrapper for this main script, smcosmo.py)
-
 Requires installation of (not yet exhaustive):
 - SNCosmo:  https://sncosmo.readthedocs.io/en/v1.4.x/index.html
 - Emcee:
@@ -40,7 +37,7 @@ from astropy.time import Time
 from numpy import random
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
 from astropy.cosmology import FlatLambdaCDM
-from astropy.extern.six.moves import range
+#from astropy.extern.six.moves import range
 from astropy.table import Table, vstack
 from scipy.stats import exponweib
 from matplotlib import cm
@@ -76,7 +73,7 @@ lcdist = 'lowz_c11'
 
 # Change path to location of dustmaps (must be downloaded first)
 # SFD map is Shlegel et al with correction prescribed in Schlafly and Finkbeiner 2011.
-#dustmap = sfdmap.SFDMap("/Users/macloan4/GTaylor/lightcurves/sfddata-master")
+#dustmap = sfdmap.SFDMap("/Users/macloan4/GTaylor/lightcurves/sfddata-master")#macloan4
 #dustmap = sfdmap.SFDMap("/home/georgie/sfddata-master")#thinkpad
 dustmap = sfdmap.SFDMap("/home/gtaylor/sfddata-master")#motley
 
@@ -201,13 +198,10 @@ def modified_zdist(zmin, zmax, nsim, ratefunc=lambda z: 1.e-4,
                    cosmo=FlatLambdaCDM(H0=70.0, Om0=0.3)):
     """ *** Modified from original SNCosmo method to allow a user-defined number of simulations ***
          *** Majority of method is part of SNCosmo source code: https://sncosmo.readthedocs.io ***
-
     Generate a distribution of redshifts.
-
     Generates the correct redshift distribution and number of SNe, given
     the input volumetric SN rate, the cosmology, and the observed area and
     time.
-
     Parameters
     ----------
     zmin, zmax : float
@@ -254,19 +248,15 @@ def uniform_sample(xmin, xmax, ymin, ymax):
 
 def one_skew_rv(max_prob, sigma_m, sigma_p):
     """ Generate a distribution for c or x1, as defined in Scolnic and Kessler 2016.
-
     Returns a random float in the defined skew-normal distribution
-
     Parameters
     ----------
-
     max_prob: float
         value with maximum probability
     sigma_m: float
         standard deviation below max_prob
     sigma_p: float
         standard deviation above max_prob
-
     """
     while True:
         sample = uniform_sample(-3, 3, 0, 1)
@@ -284,12 +274,9 @@ def one_skew_rv(max_prob, sigma_m, sigma_p):
 
 def one_skew_prob_c(param):
     """ Generate a probability for obtaining a certain param c, as defined in Scolnic and Kessler 2016.
-
     Returns the probability of getting 'param' in the defined distribution
-
     Parameters
     ----------
-
     max_prob: float
         value with maximum probability
     sigma_m: float
@@ -342,16 +329,16 @@ def one_skew_prob_c(param):
         prob =  (math.exp(numer/(2*sigma_m**2)))/normfactor
     else:
         prob =  (math.exp(numer/(2*sigma_p**2)))/normfactor
+    # Extending Low-z x1 condition (prevents math error for log of 0 probability case)
+    if prob == 0:
+        prob = 0.000000000001
     return prob
 
 def one_skew_prob_x1(param):
     """ Generate a probability for obtaining a certain param x1, as defined in Scolnic and Kessler 2016.
-
     Returns the probability of getting 'param' in the defined distribution
-
     Parameters
     ----------
-
     max_prob: float
         value with maximum probability
     sigma_m: float
@@ -404,6 +391,9 @@ def one_skew_prob_x1(param):
         prob =  (math.exp(numer/(2*sigma_m**2)))/normfactor
     else:
         prob =  (math.exp(numer/(2*sigma_p**2)))/normfactor
+    # Extending Low-z x1 condition (prevents math error for log of 0 probability case)
+    if prob == 0:
+        prob = 0.000000000001
     return prob
 
 def k2_info(campaign):
