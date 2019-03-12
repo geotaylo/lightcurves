@@ -9,6 +9,10 @@ from astropy.extern.six.moves import range
 import vg
 import math
 import sncosmo
+<<<<<<< HEAD
+import smcosmo
+=======
+>>>>>>> aadd868b21f9c5319b6b21dbee52e72950b920a7
 from numpy import trapz
 
 lcdist = 'ps1_g10'
@@ -265,6 +269,32 @@ def mu(z):
 
     return 5*np.log10(d_L) + 25
 
+<<<<<<< HEAD
+# xs = []
+# for i in range(100):
+#     x0 = 10 ** ((29.69 - mu(zs[i])) / 2.5)
+#     xs.append(x0)
+#
+# ax.scatter(zs, xs, color='k')
+#
+# mod_xs = []
+# for z in zs:
+#     # Absoute B-band magnitude of SN, with some scatter introduced.
+#     mabs = np.random.normal(-19.3, 0.3)
+#     model.set(z=z)
+#     model.set_source_peakabsmag(mabs, 'bessellb', 'ab')
+#     x0 = model.get('x0')
+#     mod_xs.append(x0)
+#
+# ax.scatter(zs, mod_xs, color='m')
+# plt.show()
+
+#Testing dictionary
+x = []
+for i in range(1000):
+    x.append(np.random.randint(1, 3))
+plt.hist(x)
+=======
 xs = []
 for i in range(100):
     x0 = 10 ** ((29.69 - mu(zs[i])) / 2.5)
@@ -282,4 +312,5 @@ for z in zs:
     mod_xs.append(x0)
 
 ax.scatter(zs, mod_xs, color='m')
+>>>>>>> aadd868b21f9c5319b6b21dbee52e72950b920a7
 plt.show()
