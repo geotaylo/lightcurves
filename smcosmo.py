@@ -72,7 +72,7 @@ zmax = 0.15
 # NOTE: options are 'lowz_g10', 'lowz_c11', 'ps1_g10', 'ps1_c11' (reflecting sample and intrinsic scatter model)
 #       c bounds [-0.3, 0.3]; x bounds [-3, 3]
 #       PS1 distributions need to be updated to values from Pantheon paper (Scolnic 2017)
-lcdist = 'lowz_g10'
+lcdist = 'lowz_c11'
 
 # Change path to location of dustmaps (must be downloaded first)
 # SFD map is Shlegel et al with correction prescribed in Schlafly and Finkbeiner 2011.
