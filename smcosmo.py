@@ -247,7 +247,8 @@ def uniform_sample(xmin, xmax, ymin, ymax):
     return np.random.random(2,)*np.array([xmax-xmin,ymax-ymin])+np.array([xmin, ymin])
 
 def one_skew_rv(max_prob, sigma_m, sigma_p):
-    """ Generate a distribution for c or x1, as defined in Scolnic and Kessler 2016.
+    """ Generate a distribution for c or x1, as defined in Scolnic and Kessler 2016  (lowz) or table 3
+    of the Pantheon paper (Scolnic et al 2018) (ps1)
     Returns a random float in the defined skew-normal distribution
     Parameters
     ----------
@@ -273,7 +274,8 @@ def one_skew_rv(max_prob, sigma_m, sigma_p):
     return rv
 
 def one_skew_prob_c(param):
-    """ Generate a probability for obtaining a certain param c, as defined in Scolnic and Kessler 2016.
+    """ Generate a probability for obtaining a certain param c, as defined in Scolnic and Kessler 2016 (lowz) or table 3
+    of the Pantheon paper (Scolnic et al 2018) (ps1)
     Returns the probability of getting 'param' in the defined distribution
     Parameters
     ----------
@@ -286,14 +288,6 @@ def one_skew_prob_c(param):
     param: float
         value of param, for which you are trying to find the probability.
     normfactor: calculated as the area under the graph, using the trapz function.
-        c:  lowz_g10: 0.21660889801728506;
-            ps1_g10: 0.18780753712230902;
-            lowz_c11: 0.1891463376131865;
-            ps1_c11: 0.1654646632528336;
-        x1: lowz_g10: 3.7561727085403804;
-            ps1_g10: 1.74227465242822;
-            lowz_c11: 3.739187213082589;
-            ps1_c11: 1.7610474962637968;
     """
 
     # Handling the different normalisations for each lc distribution type (be careful, referencing global params)
@@ -303,20 +297,20 @@ def one_skew_prob_c(param):
         sigma_m = 0.023
         sigma_p = 0.150
     elif lcdist == 'ps1_g10':
-        normfactor = 0.18780753712230902
-        max_prob = -0.077
-        sigma_m = 0.029
-        sigma_p = 0.121
+        normfactor = 0.19657491035044955
+        max_prob = -0.068
+        sigma_m = 0.034
+        sigma_p = 0.123
     elif lcdist == 'lowz_c11':
         normfactor = 0.1891463376131865
         max_prob = -0.069
         sigma_m = 0.003
         sigma_p = 0.148
     elif lcdist == 'ps1_c11':
-        normfactor = 0.1654646632528336
-        max_prob = -0.103
+        normfactor = 0.17129293048587013
+        max_prob = -0.1
         sigma_m = 0.003
-        sigma_p = 0.129
+        sigma_p = 0.134
     else:
         raise ValueError('Invalid lcdist value - please use \'lowz_g10\', '
                          '\'ps1_g10\', \'lowz_c11\', or \'ps1_c11\'')
@@ -335,7 +329,8 @@ def one_skew_prob_c(param):
     return prob
 
 def one_skew_prob_x1(param):
-    """ Generate a probability for obtaining a certain param x1, as defined in Scolnic and Kessler 2016.
+    """Generate a probability for obtaining a certain param x1, as defined in Scolnic and Kessler 2016 (lowz) or table 3
+    of the Pantheon paper (Scolnic et al 2018) (ps1)
     Returns the probability of getting 'param' in the defined distribution
     Parameters
     ----------
@@ -348,14 +343,6 @@ def one_skew_prob_x1(param):
     param: float
         value of param, for which you are trying to find the probability.
     normfactor: calculated as the area under the graph, using the trapz function.
-        c:  lowz_g10: 0.21660889801728506;
-            ps1_g10: 0.18780753712230902;
-            lowz_c11: 0.1891463376131865;
-            ps1_c11: 0.1654646632528336;
-        x1: lowz_g10: 3.7561727085403804;
-            ps1_g10: 1.74227465242822;
-            lowz_c11: 3.739187213082589;
-            ps1_c11: 1.7610474962637968;
     """
 
     # Handling the different normalisations for each lc distribution type (be careful, referencing global params)
@@ -365,20 +352,20 @@ def one_skew_prob_x1(param):
         sigma_m = 3.118
         sigma_p = 0.724
     elif lcdist == 'ps1_g10':
-        normfactor = 1.74227465242822
-        max_prob = 0.604
-        sigma_m = 1.029
-        sigma_p = 0.363
+        normfactor = 1.8487137984066044
+        max_prob = 0.365
+        sigma_m = 0.963
+        sigma_p = 0.514
     elif lcdist == 'lowz_c11':
         normfactor = 3.739187213082589
         max_prob = 0.419
         sigma_m = 3.024
         sigma_p = 0.742
     elif lcdist == 'ps1_c11':
-        normfactor = 1.7610474962637968
-        max_prob = 0.589
-        sigma_m = 1.026
-        sigma_p = 0.381
+        normfactor = 1.8673163349584707
+        max_prob = 0.384
+        sigma_m = 0.987
+        sigma_p = 0.505
     else:
         raise ValueError('Invalid lcdist value - please use \'lowz_g10\', '
                          '\'ps1_g10\', \'lowz_c11\', or \'ps1_c11\'')
@@ -577,11 +564,11 @@ def simulate_sn_set(folder, nSNe=0, campaign=0):
         if lcdist == 'lowz_g10':
             c.append(one_skew_rv(-0.055, 0.023, 0.150))
         elif lcdist == 'ps1_g10':
-            c.append(one_skew_rv(-0.077, 0.029, 0.121))
+            c.append(one_skew_rv(-0.068, 0.034, 0.123))
         elif lcdist == 'lowz_c11':
             c.append(one_skew_rv(-0.069, 0.003, 0.148))
         elif lcdist == 'ps1_c11':
-            c.append(one_skew_rv(-0.103, 0.003, 0.129))
+            c.append(one_skew_rv(-0.1, 0.003, 0.134))
         else:
             raise ValueError('Invalid lcdist value - please use \'lowz_g10\', '
                              '\'ps1_g10\', \'lowz_c11\', or \'ps1_c11\'')
@@ -593,11 +580,11 @@ def simulate_sn_set(folder, nSNe=0, campaign=0):
         if lcdist == 'lowz_g10':
             x1.append(one_skew_rv(0.436, 3.118, 0.724))
         elif lcdist == 'ps1_g10':
-            x1.append(one_skew_rv(0.604, 1.029, 0.363))
+            x1.append(one_skew_rv(0.365, 0.963, 0.514))
         elif lcdist == 'lowz_c11':
             x1.append(one_skew_rv(0.419, 3.024, 0.742))
         elif lcdist == 'ps1_c11':
-            x1.append(one_skew_rv(0.589, 1.026, 0.381))
+            x1.append(one_skew_rv(0.384, 0.987, 0.505))
 
     # x0 = scaling factor, set as prescribed by SNCosmo with some scatter
     for i in range(nSNe):

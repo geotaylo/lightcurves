@@ -6,16 +6,13 @@ from numpy import random
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
 from astropy.cosmology import FlatLambdaCDM
 from astropy.extern.six.moves import range
-import vg
 import math
 import sncosmo
-<<<<<<< HEAD
 import smcosmo
-=======
->>>>>>> aadd868b21f9c5319b6b21dbee52e72950b920a7
+
 from numpy import trapz
 
-lcdist = 'ps1_g10'
+lcdist = 'ps1_c11'
 Q0 = -0.5
 # Speed of light (km/s)
 LIGHT = 2.997*10**5
@@ -87,7 +84,8 @@ def uniform_sample(xmin, xmax, ymin, ymax):
 
 # Tested and implemented
 def one_skew_rv(max_prob, sigma_m, sigma_p):
-    """ Generate a distribution for c or x1, as defined in Scolnic and Kessler 2016.
+    """ Generate a distribution for c or x1, as defined in Scolnic and Kessler 2016 (low_z samples) or table 3 of the
+    Pantheon paper (scolnic et al 2018) (ps1 samples)
 
     Returns a random float in the defined skew-normal distribution
 
@@ -117,7 +115,8 @@ def one_skew_rv(max_prob, sigma_m, sigma_p):
 
 
 def one_skew_prob_c(param):
-    """ Generate a probability for obtaining a certain param c or x1, as defined in Scolnic and Kessler 2016.
+    """ Generate a probability for obtaining a certain param c or x1, as defined in Scolnic and Kessler 2016
+    (low_z samples) or table 3 of the Pantheon paper (scolnic et al 2018) (ps1 samples)
 
     Returns the probability of getting 'param' in the defined distribution
 
@@ -150,33 +149,43 @@ def one_skew_prob_c(param):
         sigma_m = 0.023
         sigma_p = 0.150
     elif lcdist == 'ps1_g10':
-        normfactor = 0.18780753712230902
-        max_prob = -0.077
-        sigma_m = 0.029
-        sigma_p = 0.121
+        normfactor = 0.19657491035044955
+        max_prob = -0.068
+        sigma_m = 0.034
+        sigma_p = 0.123
     elif lcdist == 'lowz_c11':
         normfactor = 0.1891463376131865
         max_prob = -0.069
         sigma_m = 0.003
         sigma_p = 0.148
     elif lcdist == 'ps1_c11':
-        normfactor = 0.1654646632528336
-        max_prob = -0.103
+        normfactor = 0.17129293048587013
+        max_prob = -0.1
         sigma_m = 0.003
-        sigma_p = 0.129
+        sigma_p = 0.134
     else:
         raise ValueError('Invalid lcdist value - please use \'lowz_g10\', '
                          '\'ps1_g10\', \'lowz_c11\', or \'ps1_c11\'')
+
+
     x = param
     numer = -((x - max_prob) ** 2)
     if x <= max_prob:
         prob =  (math.exp(numer/(2*sigma_m**2)))/normfactor
     else:
         prob =  (math.exp(numer/(2*sigma_p**2)))/normfactor
+    # Extending Low-z x1 condition (prevents math error for log of 0 probability case)
+
+    if x <= -0.3 or x >= 0.3:
+        prob = 0.000000000001
+
+    if prob == 0:
+        prob = 0.000000000001
     return prob
 
 def one_skew_prob_x1(param):
-    """ Generate a probability for obtaining a certain param c or x1, as defined in Scolnic and Kessler 2016.
+    """ Generate a probability for obtaining a certain param c or x1, as defined in Scolnic and Kessler 2016
+    (low_z samples) or table 3 of the Pantheon paper (scolnic et al 2018) (ps1 samples)
 
     Returns the probability of getting 'param' in the defined distribution
 
@@ -203,29 +212,32 @@ def one_skew_prob_x1(param):
     """
 
     # Handling the different normalisations for each lc distribution type (be careful, referencing global params)
+    # Low-z x1 condition:
+
     if lcdist == 'lowz_g10':
         normfactor = 3.7561727085403804
         max_prob = 0.436
         sigma_m = 3.118
         sigma_p = 0.724
     elif lcdist == 'ps1_g10':
-        normfactor = 1.74227465242822
-        max_prob = 0.604
-        sigma_m = 1.029
-        sigma_p = 0.363
+        normfactor = 1.8487137984066044
+        max_prob = 0.365
+        sigma_m = 0.963
+        sigma_p = 0.514
     elif lcdist == 'lowz_c11':
         normfactor = 3.739187213082589
         max_prob = 0.419
         sigma_m = 3.024
         sigma_p = 0.742
     elif lcdist == 'ps1_c11':
-        normfactor = 1.7610474962637968
-        max_prob = 0.589
-        sigma_m = 1.026
-        sigma_p = 0.381
+        normfactor = 1.8673163349584707
+        max_prob = 0.384
+        sigma_m = 0.987
+        sigma_p = 0.505
     else:
         raise ValueError('Invalid lcdist value - please use \'lowz_g10\', '
                          '\'ps1_g10\', \'lowz_c11\', or \'ps1_c11\'')
+
     x = param
     numer = -((x - max_prob) ** 2)
     # Low-z x1 condition:
@@ -235,32 +247,36 @@ def one_skew_prob_x1(param):
         prob =  (math.exp(numer/(2*sigma_m**2)))/normfactor
     else:
         prob =  (math.exp(numer/(2*sigma_p**2)))/normfactor
+    # Extending Low-z x1 condition (prevents math error for log of 0 probability case)
+    if prob == 0:
+        prob = 0.000000000001
     return prob
 
 
-# NormSamples = []
-# for i in range(1000):
-#     NormSamples.append(one_skew_rv(0.419, 3.024, 0.742))
-#
-fig, ax = plt.subplots()
-# #norm_1, bins_1, patches_1 = plt.hist(NormSamples, bins=50, alpha = 0.4)
-# norm, bins, patches = ax.hist(NormSamples, bins=50, alpha = 0.4, density=True)
-# plt.xlim(-5, 5)
-# # plt.show()
-# x_sample = np.linspace(-20,20,1000)
-# x_probs = []
-# for i in range(len(x_sample)):
-#     p = one_skew_prob_x1(x_sample[i])
-#     x_probs.append(p)
-#     print x_sample[i]
-#     print p
-#     logtest = math.log(p)
-#
-# # ax.scatter(x_sample, np.array(x_probs), color='k')
-# #
-# # plt.show()
+NormSamples = []
+for i in range(1000):
+    NormSamples.append(one_skew_rv(0.384, 0.987, 0.505))
 
-zs = list(modified_zdist(0.001, 0.15, 100))
+fig, ax = plt.subplots()
+#norm_1, bins_1, patches_1 = plt.hist(NormSamples, bins=50, alpha = 0.4)
+norm, bins, patches = ax.hist(NormSamples, bins=50, alpha = 0.4, density=True)
+plt.xlim(-3, 3)
+# plt.show()
+x_sample = np.linspace(-3,3,1000)
+x_probs = []
+for i in range(len(x_sample)):
+    p = one_skew_prob_x1(x_sample[i])
+    x_probs.append(p)
+
+area = trapz(x_probs, dx=6./1000.)
+print area
+ax.scatter(x_sample, np.array(x_probs), color='k')
+
+plt.show()
+
+
+#
+# zs = list(modified_zdist(0.001, 0.15, 100))
 
 def mu(z):
     """ Distance modulus formula used to obtain x0. """
@@ -268,8 +284,32 @@ def mu(z):
     d_L = LIGHT * (z + 0.5 * (1 - Q0) * z ** 2) / H0
 
     return 5*np.log10(d_L) + 25
-
-<<<<<<< HEAD
+#
+# # xs = []
+# # for i in range(100):
+# #     x0 = 10 ** ((29.69 - mu(zs[i])) / 2.5)
+# #     xs.append(x0)
+# #
+# # ax.scatter(zs, xs, color='k')
+# #
+# # mod_xs = []
+# # for z in zs:
+# #     # Absoute B-band magnitude of SN, with some scatter introduced.
+# #     mabs = np.random.normal(-19.3, 0.3)
+# #     model.set(z=z)
+# #     model.set_source_peakabsmag(mabs, 'bessellb', 'ab')
+# #     x0 = model.get('x0')
+# #     mod_xs.append(x0)
+# #
+# # ax.scatter(zs, mod_xs, color='m')
+# # plt.show()
+#
+# #Testing dictionary
+# x = []
+# for i in range(1000):
+#     x.append(np.random.randint(1, 3))
+# plt.hist(x)
+#
 # xs = []
 # for i in range(100):
 #     x0 = 10 ** ((29.69 - mu(zs[i])) / 2.5)
@@ -287,30 +327,5 @@ def mu(z):
 #     mod_xs.append(x0)
 #
 # ax.scatter(zs, mod_xs, color='m')
+#
 # plt.show()
-
-#Testing dictionary
-x = []
-for i in range(1000):
-    x.append(np.random.randint(1, 3))
-plt.hist(x)
-=======
-xs = []
-for i in range(100):
-    x0 = 10 ** ((29.69 - mu(zs[i])) / 2.5)
-    xs.append(x0)
-
-ax.scatter(zs, xs, color='k')
-
-mod_xs = []
-for z in zs:
-    # Absoute B-band magnitude of SN, with some scatter introduced.
-    mabs = np.random.normal(-19.3, 0.3)
-    model.set(z=z)
-    model.set_source_peakabsmag(mabs, 'bessellb', 'ab')
-    x0 = model.get('x0')
-    mod_xs.append(x0)
-
-ax.scatter(zs, mod_xs, color='m')
->>>>>>> aadd868b21f9c5319b6b21dbee52e72950b920a7
-plt.show()
