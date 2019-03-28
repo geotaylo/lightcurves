@@ -563,6 +563,8 @@ def plot_trimmed(scopes, label, colour, folder, mode):
 
     try:
         fig, ax = plt.subplots()
+        fig_2, (ax1, ax2, ax3) = plt.subplots(3, sharex=True, sharey=True)
+
         index = 0
         for i in range(0, len(scopes)):
             data = scopes[i][0]
@@ -573,12 +575,13 @@ def plot_trimmed(scopes, label, colour, folder, mode):
             iqr = upper_quartile - lower_quartile
             trimmed_data = [x for x in data if x <= upper_quartile + 1.7239 * iqr and x >= lower_quartile - 1.7239 * iqr]
 
+            # Create boxplot
             boxprops = dict(linestyle='-', linewidth=0.7, color=colour[i], facecolor='white')
             flierprops = dict(marker='s', markerfacecolor=colour[i], markersize=3,
                               linestyle='none', alpha=0.3)
             genprops = dict(linestyle='-', linewidth=0.7, color=colour[i])
 
-            plt.boxplot(trimmed_data, positions=[i], patch_artist=True,
+            ax.boxplot(trimmed_data, positions=[i], patch_artist=True,
                         boxprops=boxprops,
                         whiskerprops=genprops,
                         capprops=genprops,
@@ -586,21 +589,54 @@ def plot_trimmed(scopes, label, colour, folder, mode):
                         medianprops=genprops,
                         flierprops=flierprops)
             index += 1
+
+            if mode == 'residual':
+                # Create Gaussians
+                bins = np.arange(min(trimmed_data), max(trimmed_data) + 0.01, 0.01)
+                hist_data = ax1.hist(trimmed_data, bins, histtype='step', density=True, color=colour[i],
+                                label=label[i] + '(%s fits)' % str(len(trimmed_data)))
+                # Generate data from bins as a set of points
+                x = [0.5 * (hist_data[1][t] + hist_data[1][t + 1]) for t in xrange(len(hist_data[1]) - 1)]
+                y = hist_data[0]
+
+                popt, pcov = curve_fit(f, x, y)
+
+                x_fit = py.linspace(min(trimmed_data), max(trimmed_data), 200)
+                y_fit = f(x_fit, *popt)
+
+                ax2.plot(x_fit, y_fit, lw=1, color=colour[i],
+                         label=label[i] + '\n $\mu = %s$' % round(popt[1], 5) + '\n $\sigma = %s$' % round(popt[2], 5))
+
+                ax3.hist(trimmed_data, bins, histtype='step', density=True, color=colour[i],
+                         label=label[i] + '(%s fits)' % str(len(trimmed_data) / 2))
+                ax3.plot(x_fit, y_fit, lw=1, color=colour[i])
+
         if mode == 'residual':
             ax.set_ylabel('Residual (true - fitted value of c)')
+            ax3.set_xlabel('Residual (true - fitted value of c)')
+            ax2.set_ylabel('PDF')
+            leg = ax2.legend(fontsize='large', loc='center left', bbox_to_anchor=(1, 0.5), ncol=1,
+                             borderaxespad=0, frameon=False, labelspacing=1)
+            for line in leg.get_lines():
+                line.set_linewidth(3.0)
+            fig_2.savefig(folder + mode + '_colour_normed.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
         elif mode == 'uncertainty':
             ax.set_ylabel('Uncertainty in fitted value of c')
-        plt.xticks(range(0, index), label)
+
+        ax.set_xticks(range(0, index), label)
         ax.set_xlim(-0.5, index + 0.5)
-        plt.xticks(rotation=45)
         fig.savefig(folder + mode + '_colour.png', dpi=200, bbox_inches='tight')
+
         plt.close(fig)
+        plt.close(fig_2)
     except RuntimeError:
         print('An error occured - probably couldn\'t fit a Gaussian.')
         plt.close()
 
     try:
         fig, ax = plt.subplots()
+        fig_2, (ax1, ax2, ax3) = plt.subplots(3, sharex=True, sharey=True)
+
         index = 0
         for i in range(0, len(scopes)):
             data = scopes[i][1]
@@ -611,12 +647,13 @@ def plot_trimmed(scopes, label, colour, folder, mode):
             iqr = upper_quartile - lower_quartile
             trimmed_data = [x for x in data if x <= upper_quartile + 1.7239 * iqr and x >= lower_quartile - 1.7239 * iqr]
 
+            # Create boxplot
             boxprops = dict(linestyle='-', linewidth=0.7, color=colour[i], facecolor='white')
             flierprops = dict(marker='s', markerfacecolor=colour[i], markersize=3,
                               linestyle='none', alpha=0.3)
             genprops = dict(linestyle='-', linewidth=0.7, color=colour[i])
 
-            plt.boxplot(trimmed_data, positions=[i], patch_artist=True,
+            ax.boxplot(trimmed_data, positions=[i], patch_artist=True,
                         boxprops=boxprops,
                         whiskerprops=genprops,
                         capprops=genprops,
@@ -624,21 +661,54 @@ def plot_trimmed(scopes, label, colour, folder, mode):
                         medianprops=genprops,
                         flierprops=flierprops)
             index += 1
+
+            if mode == 'residual':
+                # Create Gaussians
+                bins = np.arange(min(trimmed_data), max(trimmed_data) + 0.05, 0.05)
+                hist_data = ax1.hist(trimmed_data, bins, histtype='step', density=True, color=colour[i],
+                                label=label[i] + '(%s fits)' % str(len(trimmed_data)))
+                # Generate data from bins as a set of points
+                x = [0.5 * (hist_data[1][t] + hist_data[1][t + 1]) for t in xrange(len(hist_data[1]) - 1)]
+                y = hist_data[0]
+
+                popt, pcov = curve_fit(f, x, y)
+
+                x_fit = py.linspace(min(trimmed_data), max(trimmed_data), 200)
+                y_fit = f(x_fit, *popt)
+
+                ax2.plot(x_fit, y_fit, lw=1, color=colour[i],
+                         label=label[i] + '\n $\mu = %s$' % round(popt[1], 5) + '\n $\sigma = %s$' % round(popt[2], 5))
+
+                ax3.hist(trimmed_data, bins, histtype='step', density=True, color=colour[i],
+                         label=label[i] + '(%s fits)' % str(len(trimmed_data) / 2))
+                ax3.plot(x_fit, y_fit, lw=1, color=colour[i])
+
         if mode == 'residual':
             ax.set_ylabel('Residual (true - fitted value of t0)')
+            ax3.set_xlabel('Residual (true - fitted value of t0)')
+            ax2.set_ylabel('PDF')
+            leg = ax2.legend(fontsize='large', loc='center left', bbox_to_anchor=(1, 0.5), ncol=1,
+                             borderaxespad=0, frameon=False, labelspacing=1)
+            for line in leg.get_lines():
+                line.set_linewidth(3.0)
+            fig_2.savefig(folder + mode + '_t0_normed.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
         elif mode == 'uncertainty':
             ax.set_ylabel('Uncertainty in fitted value of t0')
-        plt.xticks(range(0, index), label)
+
+        ax.set_xticks(range(0, index), label)
         ax.set_xlim(-0.5, index + 0.5)
-        plt.xticks(rotation=45)
         fig.savefig(folder + mode + '_t0.png', dpi=200, bbox_inches='tight')
+
         plt.close(fig)
+        plt.close(fig_2)
     except RuntimeError:
         print('An error occured - probably couldn\'t fit a Gaussian.')
         plt.close()
 
     try:
         fig, ax = plt.subplots()
+        fig_2, (ax1, ax2, ax3) = plt.subplots(3, sharex=True, sharey=True)
+
         index = 0
         for i in range(0, len(scopes)):
             data = scopes[i][3]
@@ -649,12 +719,13 @@ def plot_trimmed(scopes, label, colour, folder, mode):
             iqr = upper_quartile - lower_quartile
             trimmed_data = [x for x in data if x <= upper_quartile + 1.7239 * iqr and x >= lower_quartile - 1.7239 * iqr]
 
+            # Create boxplot
             boxprops = dict(linestyle='-', linewidth=0.7, color=colour[i], facecolor='white')
             flierprops = dict(marker='s', markerfacecolor=colour[i], markersize=3,
                               linestyle='none', alpha=0.3)
             genprops = dict(linestyle='-', linewidth=0.7, color=colour[i])
 
-            plt.boxplot(trimmed_data, positions=[i], patch_artist=True,
+            ax.boxplot(trimmed_data, positions=[i], patch_artist=True,
                         boxprops=boxprops,
                         whiskerprops=genprops,
                         capprops=genprops,
@@ -662,18 +733,51 @@ def plot_trimmed(scopes, label, colour, folder, mode):
                         medianprops=genprops,
                         flierprops=flierprops)
             index += 1
+
+            if mode == 'residual':
+                # Create Gaussians
+                bins = np.arange(min(trimmed_data), max(trimmed_data) + 0.01, 0.01)
+                hist_data = ax1.hist(trimmed_data, bins, histtype='step', density=True, color=colour[i],
+                                label=label[i] + '(%s fits)' % str(len(trimmed_data)))
+                # Generate data from bins as a set of points
+                x = [0.5 * (hist_data[1][t] + hist_data[1][t + 1]) for t in xrange(len(hist_data[1]) - 1)]
+                y = hist_data[0]
+
+                popt, pcov = curve_fit(f, x, y)
+
+                x_fit = py.linspace(min(trimmed_data), max(trimmed_data), 200)
+                y_fit = f(x_fit, *popt)
+
+                ax2.plot(x_fit, y_fit, lw=1, color=colour[i],
+                         label=label[i] + '\n $\mu = %s$' % round(popt[1], 5) + '\n $\sigma = %s$' % round(popt[2], 5))
+
+                ax3.hist(trimmed_data, bins, histtype='step', density=True, color=colour[i],
+                         label=label[i] + '(%s fits)' % str(len(trimmed_data) / 2))
+                ax3.plot(x_fit, y_fit, lw=1, color=colour[i])
+
         if mode == 'residual':
             ax.set_ylabel('Residual (true - fitted value of x1)')
+            ax3.set_xlabel('Residual (true - fitted value of x1)')
+            ax2.set_ylabel('PDF')
+            leg = ax2.legend(fontsize='large', loc='center left', bbox_to_anchor=(1, 0.5), ncol=1,
+                             borderaxespad=0, frameon=False, labelspacing=1)
+            for line in leg.get_lines():
+                line.set_linewidth(3.0)
+            fig_2.savefig(folder + mode + '_stretch_normed.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
         elif mode == 'uncertainty':
             ax.set_ylabel('Uncertainty in fitted value of x1')
-        plt.xticks(range(0, index), label)
+
+        ax.set_xticks(range(0, index), label)
         ax.set_xlim(-0.5, index + 0.5)
-        plt.xticks(rotation=45)
         fig.savefig(folder + mode + '_stretch.png', dpi=200, bbox_inches='tight')
+
         plt.close(fig)
+        plt.close(fig_2)
     except RuntimeError:
         print('An error occured - probably couldn\'t fit a Gaussian.')
         plt.close()
+
+    return
 
 
 
