@@ -20,6 +20,7 @@ from matplotlib.ticker import MaxNLocator
 import heapq
 from scipy import stats
 
+import seaborn as sns
 
 def analyse(folder, set, fails=[], wipe_fails=False):
     """
@@ -243,210 +244,12 @@ def analyse(folder, set, fails=[], wipe_fails=False):
     return error_set, diffs, uncerts, uncut_len
 
 
-    # # remove outliers (top and bottom 1% or 10 entries)
-    # final_diff_c = sorted(diff_c)[10:-10]
-    # final_diff_t0 = sorted(diff_t0)[10:-10]
-    # final_diff_x0 = sorted(diff_x0)[10:-10]
-    # final_diff_x1 = sorted(diff_x1)[10:-10]
-    #
-    # final_uncert_c = sorted(uncert_c)[10:-10]
-    # final_uncert_t0 = sorted(uncert_t0)[10:-10]
-    # final_uncert_x0 = sorted(uncert_x0)[10:-10]
-    # final_uncert_x1 = sorted(uncert_x1)[10:-10]
-    #
-    #
-    # # inspect largest elements in set
-    # print 'c res: %s' %heapq.nlargest(5, final_diff_c)
-    # print 't0 res: %s' %heapq.nlargest(5, final_diff_t0)
-    # print 'x0 res: %s' %heapq.nlargest(5, final_diff_x0)
-    # print 'x1 res: %s' %heapq.nlargest(5, final_diff_x1)
-    #
-    # print 'c uncty: %s' %heapq.nlargest(5, final_uncert_c)
-    # print 't0 uncty: %s' % heapq.nlargest(5, final_uncert_t0)
-    # print 'x0 uncty: %s' % heapq.nlargest(5, final_uncert_x0)
-    # print 'x1 uncty: %s' % heapq.nlargest(5, final_uncert_x1)
-
-
 def f(x, a, b, c):
     """
     Equation for a Gaussian
     """
     return a * py.exp((-(x - b) ** 2.0) / (2 * c ** 2))
 
-#
-# def plot_diffs(scopes, labels, colour, folder):
-# #     """
-# #     Plots histograms and fitted gaussians of residuals for a set of filters, for each parameter.
-# #     """
-# #
-# #     # C - set to [-0.2,0.2] with bins of 0.01
-# #     crange = 0.2
-# #     trange = 0.2
-# #     x1range = 0.2
-# #     try:
-# #         figa, (ax1, ax2, ax3) = plt.subplots(3, sharex=True, sharey=True)
-# #
-# #         for i in range(0, len(scopes)):
-# #             abs_c = scopes[i][0]
-# #             trimmed_c = [x for x in abs_c if x >= -crange and x <= crange]
-# #             bins_c = np.arange(min(trimmed_c), max(trimmed_c) + 0.01, 0.01)
-# #             data = ax1.hist(trimmed_c, bins_c, histtype='step', color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_c)))
-# #
-# #             # Generate data from bins as a set of points
-# #             x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
-# #             y = data[0]
-# #
-# #             popt, pcov = curve_fit(f, x, y)
-# #
-# #             x_fit = py.linspace(-crange, crange, 200)
-# #             y_fit = f(x_fit, *popt)
-# #
-# #             ax2.plot(x_fit, y_fit, lw=2, color=colour[i])
-# #
-# #             ax3.hist(trimmed_c, bins_c, histtype='step', color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_c)/2))
-# #             ax3.plot(x_fit, y_fit, lw=2, color=colour[i])
-# #
-# #         if not os.path.isdir(folder):
-# #             os.makedirs(folder)
-# #
-# #         figa.subplots_adjust(hspace=0)
-# #         plt.setp([a.get_xticklabels() for a in figa.axes[:-1]], visible=False)
-# #         ax1.set_title('Colour (c) Residuals')
-# #         plt.xlabel('Residual (true - fitted value of c)')
-# #         plt.ylabel('Frequency')
-# #         plt.xlim(-crange, crange)
-# #         ax1.legend(fontsize = 'x-small')
-# #         figa.savefig(folder + 'colour.png', dpi=1000)
-# #         plt.close()
-# #     except RuntimeError:
-# #         print('An error occured.')
-# #         plt.close()
-# #
-# #     # t_0 - set to [-0.25,0.25] with bins of 0.02
-# #     try:
-# #         figa2, (ax4, ax5, ax6) = plt.subplots(3, sharex=True, sharey=True)
-# #
-# #         for i in range(0, len(scopes)):
-# #             abs_t0 = scopes[i][1]
-# #             trimmed_t0 = [x for x in abs_t0 if x >= -trange and x <= trange]
-# #             bins_t0 = np.arange(min(trimmed_t0), max(trimmed_t0) + 0.02, 0.02)
-# #             data = ax4.hist(trimmed_t0, bins_t0, histtype='step', color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_t0)))
-# #
-# #             # Generate data from bins as a set of points
-# #             x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
-# #             y = data[0]
-# #
-# #             popt, pcov = curve_fit(f, x, y)
-# #
-# #             x_fit = py.linspace(-trange, trange, 200)
-# #             y_fit = f(x_fit, *popt)
-# #
-# #             ax5.plot(x_fit, y_fit, lw=2, color=colour[i])
-# #
-# #             ax6.hist(trimmed_t0, bins_t0, histtype='step', color=colour[i], label=labels[i])
-# #             ax6.plot(x_fit, y_fit, lw=2, color=colour[i])
-# #
-# #         if not os.path.isdir(folder):
-# #             os.makedirs(folder)
-# #
-# #         figa2.subplots_adjust(hspace=0)
-# #         plt.figure(dpi=1200)
-# #         plt.setp([a.get_xticklabels() for a in figa2.axes[:-1]], visible=False)
-# #         ax4.set_title(r'Explosion Time ($t_0$) Residuals')
-# #         plt.xlabel(r'Residual (true - fitted value of $t_0$)')
-# #         plt.ylabel('Frequency')
-# #         plt.xlim(-trange, trange)
-# #         ax4.legend(fontsize = 'x-small')
-# #         figa2.savefig(folder + 't0.png')
-# #         plt.close()
-# #     except RuntimeError:
-# #         print('An error occured.')
-# #         plt.close()
-# #
-# #     # x_0 - no range because it's a bit garbage.
-# #     # try:
-# #     #     figa3, (ax7, ax8, ax9) = plt.subplots(3, sharex=True, sharey=True)
-# #     #
-# #     #     for i in range(0, len(scopes)):
-# #     #         abs_x0 = scopes[i][2]
-# #     #         bins_x0 = 100
-# #     #         data = ax7.hist(abs_x0, bins_x0, histtype='step', color=colour[i], label=labels[i]+'(%s fits)'%str(len(abs_x0)))
-# #     #
-# #     #         # Generate data from bins as a set of points
-# #     #         x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
-# #     #         y = data[0]
-# #     #
-# #     #         popt, pcov = curve_fit(f, x, y)
-# #     #
-# #     #         x_fit = py.linspace(min(abs_x0), max(abs_x0), 200)
-# #     #         y_fit = f(x_fit, *popt)
-# #     #
-# #     #         ax8.plot(x_fit, y_fit, lw=2, color=colour[i])
-# #     #
-# #     #         ax9.hist(abs_x0, bins_x0, histtype='step', color=colour[i], label=labels[i])
-# #     #         ax9.plot(x_fit, y_fit, lw=2, color=colour[i])
-# #     #
-# #     #     if not os.path.isdir(folder):
-# #     #         os.makedirs(folder)
-# #     #
-# #     #     figa3.subplots_adjust(hspace=0)
-# #     #     plt.setp([a.get_xticklabels() for a in figa3.axes[:-1]], visible=False)
-# #     #     ax7.set_title(r'$x_0$ Residuals')
-# #     #     plt.xlabel(r'Residual (true - fitted value of $x_0$)')
-# #     #     plt.ylabel('Frequency')
-# #     #     ax7.legend(fontsize = 'x-small')
-# #     #     plt.xlim(-1, 1)
-# #     #     figa3.savefig(folder + 'x0.png')
-# #     #     plt.close()
-# #     #     # plt.show()
-# #     # except RuntimeError:
-# #     #     print('An error occured.')
-# #     #     plt.close()
-# #
-# #     # x_1 - set to [-0.2, 0.2] with bins of 0.01
-# #     try:
-# #         figa4, (ax10, ax11, ax12) = plt.subplots(3, sharex=True, sharey=True)
-# #
-# #         for i in range(0, len(scopes)):
-# #             abs_x1 = scopes[i][3]
-# #             trimmed_x1 = [x for x in abs_x1 if x >= -x1range and x <= x1range]
-# #             bins_x1 = np.arange(min(trimmed_x1), max(trimmed_x1) + 0.01, 0.01)
-# #             data = ax10.hist(trimmed_x1, bins_x1, histtype='step', color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_x1)))
-# #
-# #             # Generate data from bins as a set of points
-# #             x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
-# #             y = data[0]
-# #
-# #             popt, pcov = curve_fit(f, x, y)
-# #
-# #             x_fit = py.linspace(-x1range, x1range, 200)
-# #             y_fit = f(x_fit, *popt)
-# #
-# #             ax11.plot(x_fit, y_fit, lw=2, color=colour[i])
-# #
-# #             ax12.hist(trimmed_x1, bins_x1, histtype='step', color=colour[i], label=labels[i])
-# #             ax12.plot(x_fit, y_fit, lw=2, color=colour[i])
-# #
-# #         if not os.path.isdir(folder):
-# #             os.makedirs(folder)
-# #
-# #         figa4.subplots_adjust(hspace=0)
-# #         plt.figure(dpi=1200)
-# #         plt.setp([a.get_xticklabels() for a in figa4.axes[:-1]], visible=False)
-# #         ax10.set_title(r' Stretch ($x_1$) Residuals')
-# #         plt.xlabel(r'Residual (true - fitted value of $x_1$)')
-# #         plt.ylabel('Frequency')
-# #         ax10.legend(fontsize = 'x-small')
-# #         plt.xlim(-x1range, x1range)
-# #         figa4.savefig(folder + 'x1.png')
-# #         figa4.clf()
-# #         # plt.show()
-# #         plt.close()
-# #     except RuntimeError:
-# #         print('An error occured.')
-# #         plt.close()
-# #
-#      return
 
 def plot_boxplot(scopes, label, colour, folder, mode):
     """
@@ -604,17 +407,19 @@ def plot_trimmed(scopes, label, colour, folder, mode):
                 x_fit = py.linspace(min(trimmed_data), max(trimmed_data), 200)
                 y_fit = f(x_fit, *popt)
 
-                ax2.plot(x_fit, y_fit, lw=1, color=colour[i],
-                         label=label[i] + '\n $\mu = %s$' % round(popt[1], 5) + '\n $\sigma = %s$' % round(popt[2], 5))
+                ax2.plot(x_fit, y_fit, lw=1.5, color=colour[i],
+                         label=label[i] + '\n $\mu = %s$' % round(popt[1], 5) + '\n $\sigma = %s$' % round(abs(popt[2]), 5))
 
                 ax3.hist(trimmed_data, bins, histtype='step', density=True, color=colour[i],
                          label=label[i] + '(%s fits)' % str(len(trimmed_data) / 2))
-                ax3.plot(x_fit, y_fit, lw=1, color=colour[i])
+                ax3.plot(x_fit, y_fit, lw=1.5, color=colour[i])
 
         if mode == 'residual':
             ax.set_ylabel('Residual (true - fitted value of c)')
             ax3.set_xlabel('Residual (true - fitted value of c)')
             ax2.set_ylabel('PDF')
+            ax2.set_xlim(-0.1,0.1)
+
             leg = ax2.legend(fontsize='large', loc='center left', bbox_to_anchor=(1, 0.5), ncol=1,
                              borderaxespad=0, frameon=False, labelspacing=1)
             for line in leg.get_lines():
@@ -676,12 +481,14 @@ def plot_trimmed(scopes, label, colour, folder, mode):
                 x_fit = py.linspace(min(trimmed_data), max(trimmed_data), 200)
                 y_fit = f(x_fit, *popt)
 
-                ax2.plot(x_fit, y_fit, lw=1, color=colour[i],
-                         label=label[i] + '\n $\mu = %s$' % round(popt[1], 5) + '\n $\sigma = %s$' % round(popt[2], 5))
+
+                ax2.plot(x_fit, y_fit, lw=1.5, color=colour[i],
+                         label=label[i] + '\n $\mu = %s$' % round(popt[1], 5) + '\n $\sigma = %s$' % round(abs(popt[2]), 5))
 
                 ax3.hist(trimmed_data, bins, histtype='step', density=True, color=colour[i],
                          label=label[i] + '(%s fits)' % str(len(trimmed_data) / 2))
-                ax3.plot(x_fit, y_fit, lw=1, color=colour[i])
+                ax3.plot(x_fit, y_fit, lw=1.5, color=colour[i])
+
 
         if mode == 'residual':
             ax.set_ylabel('Residual (true - fitted value of t0)')
@@ -691,6 +498,9 @@ def plot_trimmed(scopes, label, colour, folder, mode):
                              borderaxespad=0, frameon=False, labelspacing=1)
             for line in leg.get_lines():
                 line.set_linewidth(3.0)
+
+            ax2.set_xlim(-0.5,0.5)
+
             fig_2.savefig(folder + mode + '_t0_normed.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
         elif mode == 'uncertainty':
             ax.set_ylabel('Uncertainty in fitted value of t0')
@@ -748,12 +558,13 @@ def plot_trimmed(scopes, label, colour, folder, mode):
                 x_fit = py.linspace(min(trimmed_data), max(trimmed_data), 200)
                 y_fit = f(x_fit, *popt)
 
-                ax2.plot(x_fit, y_fit, lw=1, color=colour[i],
-                         label=label[i] + '\n $\mu = %s$' % round(popt[1], 5) + '\n $\sigma = %s$' % round(popt[2], 5))
+                ax2.plot(x_fit, y_fit, lw=1.5, color=colour[i],
+                         label=label[i] + '\n $\mu = %s$' % round(popt[1], 5) + '\n $\sigma = %s$' % round(abs(popt[2]), 5))
 
                 ax3.hist(trimmed_data, bins, histtype='step', density=True, color=colour[i],
                          label=label[i] + '(%s fits)' % str(len(trimmed_data) / 2))
-                ax3.plot(x_fit, y_fit, lw=1, color=colour[i])
+                ax3.plot(x_fit, y_fit, lw=1.5, color=colour[i])
+
 
         if mode == 'residual':
             ax.set_ylabel('Residual (true - fitted value of x1)')
@@ -763,6 +574,9 @@ def plot_trimmed(scopes, label, colour, folder, mode):
                              borderaxespad=0, frameon=False, labelspacing=1)
             for line in leg.get_lines():
                 line.set_linewidth(3.0)
+
+            ax2.set_xlim(-0.5,0.5)
+
             fig_2.savefig(folder + mode + '_stretch_normed.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
         elif mode == 'uncertainty':
             ax.set_ylabel('Uncertainty in fitted value of x1')
@@ -809,7 +623,7 @@ def plot_diffs_norm(scopes, labels, colour, folder):
             x_fit = py.linspace(min(trimmed_c), max(trimmed_c), 200)
             y_fit = f(x_fit, *popt)
 
-            ax2.plot(x_fit, y_fit, lw=2, color=colour[i], label=labels[i]+'\n $\mu = %s$'%round(popt[1], 5)+'\n $\sigma = %s$'%round(popt[2], 5))
+            ax2.plot(x_fit, y_fit, lw=2, color=colour[i], label=labels[i]+'\n $\mu = %s$'%round(popt[1], 5)+'\n $\sigma = %s$'%round(abs(popt[2]), 5))
 
             ax3.hist(trimmed_c, bins_c, histtype='step', density=True, color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_c)/2))
             ax3.plot(x_fit, y_fit, lw=2, color=colour[i])
@@ -852,7 +666,7 @@ def plot_diffs_norm(scopes, labels, colour, folder):
             x_fit = py.linspace(-trange, trange, 200)
             y_fit = f(x_fit, *popt)
 
-            ax5.plot(x_fit, y_fit, lw=2, color=colour[i], label=labels[i]+'\n $\mu = %s$'%round(popt[1], 5)+'\n $\sigma = %s$'%round(popt[2], 5))
+            ax5.plot(x_fit, y_fit, lw=2, color=colour[i], label=labels[i]+'\n $\mu = %s$'%round(popt[1], 5)+'\n $\sigma = %s$'%round(abs(popt[2]), 5))
 
             ax6.hist(trimmed_t0, bins_t0, histtype='step', density=True, color=colour[i], label=labels[i])
             ax6.plot(x_fit, y_fit, lw=2, color=colour[i])
@@ -895,7 +709,7 @@ def plot_diffs_norm(scopes, labels, colour, folder):
             x_fit = py.linspace(-x1range, x1range, 200)
             y_fit = f(x_fit, *popt)
 
-            ax11.plot(x_fit, y_fit, lw=2, color=colour[i], label=labels[i]+'\n $\mu = %s$'%round(popt[1], 5)+'\n $\sigma = %s$'%round(popt[2], 5))
+            ax11.plot(x_fit, y_fit, lw=2, color=colour[i], label=labels[i]+'\n $\mu = %s$'%round(popt[1], 5)+'\n $\sigma = %s$'%round(abs(popt[2]), 5))
 
             ax12.hist(trimmed_x1, bins_x1, histtype='step', density=True, color=colour[i], label=labels[i])
             ax12.plot(x_fit, y_fit, lw=2, color=colour[i])
@@ -921,334 +735,6 @@ def plot_diffs_norm(scopes, labels, colour, folder):
 
     return
 
-# TWO OLD METHODS THAT USE BIMODAL DISTRIBUTIONS - CLEAR THEM OUT WHEN YOU CAN
-# def plot_errors_old(scopes, labels, colour, folder):
-#     # """
-#     # Plots histograms and fitted gaussians of residuals for a set of filters, for each parameter.
-#     # """
-#     # crange = 0.5
-#     # trange = 0.5
-#     # x1range = 0.5
-#     #
-#     # # C - set to [-0.2,0.2] with bins of 0.01
-#     # try:
-#     #     figa, (ax1, ax2, ax3) = plt.subplots(3, sharex=True, sharey=True)
-#     #     for i in range(0, len(scopes)):
-#     #         abs_c = copy.deepcopy(scopes[i][0])
-#     #         c_flips = [-x for x in abs_c]
-#     #         abs_c.extend(c_flips)
-#     #         trimmed_c = [x for x in abs_c if x >= -crange and x <= crange]
-#     #         bins_c = np.arange(min(trimmed_c), max(trimmed_c) + 0.01, 0.01)
-#     #         data = ax1.hist(trimmed_c, bins_c, histtype='step', color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_c)/2))
-#     #
-#     #         # Generate data from bins as a set of points
-#     #         x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
-#     #         y = data[0]
-#     #
-#     #         popt, pcov = curve_fit(f, x, y)
-#     #
-#     #         x_fit = py.linspace(-crange, crange, 200)#(min(abs_c), max(abs_c), 200)
-#     #         y_fit = f(x_fit, *popt)
-#     #
-#     #         ax2.plot(x_fit, y_fit, lw=2, color=colour[i])
-#     #
-#     #         ax3.hist(trimmed_c, bins_c, histtype='step', color=colour[i], label=labels[i])
-#     #         ax3.plot(x_fit, y_fit, lw=2, color=colour[i])
-#     #
-#     #     if not os.path.isdir(folder):
-#     #         os.makedirs(folder)
-#     #
-#     #     figa.subplots_adjust(hspace=0)
-#     #     plt.figure(dpi=1200)
-#     #     plt.setp([a.get_xticklabels() for a in figa.axes[:-1]], visible=False)
-#     #     ax1.set_title(r'Colour (c) Errors')
-#     #     plt.xlabel('c error')
-#     #     plt.ylabel('Frequency')
-#     #     ax1.legend(fontsize = 'x-small')
-#     #     figa.savefig(folder + 'colour.png')
-#     #     plt.close()
-#     # except RuntimeError as e:
-#     #     print(e.message)
-#     #     plt.close()
-#     #
-#     # # t_0 - set to [-1, 1] with bins of 0.1
-#     # try:
-#     #     figa2, (ax4, ax5, ax6) = plt.subplots(3, sharex=True, sharey=True)
-#     #
-#     #     for i in range(0, len(scopes)):
-#     #         abs_t0 = copy.deepcopy(scopes[i][1])
-#     #         t0_flips = [-x for x in abs_t0]
-#     #         abs_t0.extend(t0_flips)
-#     #         trimmed_t0 = [x for x in abs_t0 if x >= -trange and x <= trange]
-#     #         bins_t0 = np.arange(min(trimmed_t0), max(trimmed_t0) + 0.02, 0.02)
-#     #         data = ax4.hist(trimmed_t0, bins_t0, histtype='step', color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_t0)/2))
-#     #
-#     #         # Generate data from bins as a set of points
-#     #         x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
-#     #         y = data[0]
-#     #
-#     #         popt, pcov = curve_fit(f, x, y)
-#     #
-#     #         x_fit = py.linspace(-trange, trange, 200)
-#     #         y_fit = f(x_fit, *popt)
-#     #
-#     #         ax5.plot(x_fit, y_fit, lw=2, color=colour[i])
-#     #
-#     #         ax6.hist(trimmed_t0, bins_t0, histtype='step', color=colour[i], label=labels[i])
-#     #         ax6.plot(x_fit, y_fit, lw=2, color=colour[i])
-#     #
-#     #     if not os.path.isdir(folder):
-#     #         os.makedirs(folder)
-#     #
-#     #     figa2.subplots_adjust(hspace=0)
-#     #     plt.figure(dpi=1200)
-#     #     plt.setp([a.get_xticklabels() for a in figa2.axes[:-1]], visible=False)
-#     #     ax4.set_title(r'Explosion Time ($t_0$) Errors')
-#     #     plt.xlabel(r'$t_0$ error')
-#     #     plt.ylabel('Frequency')
-#     #     ax4.legend(fontsize = 'x-small')
-#     #     figa2.savefig(folder + 't0.png')
-#     #     plt.close()
-#     # except RuntimeError:
-#     #     print('An error occured.')
-#     #     plt.close()
-#     #
-#     # # x_0 - unimportant.
-#     # # try:
-#     # #     figa3, (ax7, ax8, ax9) = plt.subplots(3, sharex=True, sharey=True)
-#     # #
-#     # #     for i in range(0, len(scopes)):
-#     # #         abs_x0 = scopes[i][2]
-#     # #         x0_flips = [-x for x in abs_x0]
-#     # #         abs_x0.extend(x0_flips)
-#     # #         trimmed_x0 = [x for x in abs_x0 if x >= -5 and x <= 5]
-#     # #         bins_x0 = 100
-#     # #         data = ax7.hist(abs_x0, bins_x0, histtype='step', color=colour[i], label=labels[i]+'(%s fits)'%str(len(abs_x0)/2))
-#     # #
-#     # #         # Generate data from bins as a set of points
-#     # #         x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
-#     # #         y = data[0]
-#     # #
-#     # #         popt, pcov = curve_fit(f, x, y)
-#     # #
-#     # #         x_fit = py.linspace(min(abs_x0), max(abs_x0), 200)
-#     # #         y_fit = f(x_fit, *popt)
-#     # #
-#     # #         ax8.plot(x_fit, y_fit, lw=2, color=colour[i])
-#     # #
-#     # #         ax9.hist(abs_x0, bins_x0, histtype='step', color=colour[i], label=labels[i])
-#     # #         ax9.plot(x_fit, y_fit, lw=2, color=colour[i])
-#     # #
-#     # #     if not os.path.isdir(folder):
-#     # #         os.makedirs(folder)
-#     # #
-#     # #
-#     # #     figa3.subplots_adjust(hspace=0)
-#     # #     plt.setp([a.get_xticklabels() for a in figa3.axes[:-1]], visible=False)
-#     # #     ax7.set_title(r'$x_0$ Errors')
-#     # #     plt.xlabel(r'$x_0$ Error')
-#     # #     plt.ylabel('Frequency')
-#     # #     ax7.legend(fontsize = 'x-small')
-#     # #     figa3.savefig(folder + 'x0.png')
-#     # #     plt.close()
-#     # #     # plt.show()
-#     # # except RuntimeError:
-#     # #     print('An error occured.')
-#     # #     plt.close()
-#     #
-#     #
-#     #
-#     # # x_1 - set to [-0.5, 0.5] with bins of 0.01 (nbins=100)
-#     # try:
-#     #     figa4, (ax10, ax11, ax12) = plt.subplots(3, sharex=True, sharey=True)
-#     #
-#     #     for i in range(0, len(scopes)):
-#     #         abs_x1 = copy.deepcopy(scopes[i][3])
-#     #         x1_flips = [-x for x in abs_x1]
-#     #         abs_x1.extend(x1_flips)
-#     #         trimmed_x1 = [x for x in abs_x1 if x >= -x1range and x <= x1range]
-#     #         bins_x1 = np.arange(min(trimmed_x1), max(trimmed_x1) + 0.01, 0.01)
-#     #         data = ax10.hist(trimmed_x1, bins_x1, histtype='step', color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_x1)/2))
-#     #
-#     #         # Generate data from bins as a set of points
-#     #         x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
-#     #         y = data[0]
-#     #
-#     #         popt, pcov = curve_fit(f, x, y)
-#     #
-#     #         x_fit = py.linspace(-x1range, x1range, 200)
-#     #         y_fit = f(x_fit, *popt)
-#     #
-#     #         ax11.plot(x_fit, y_fit, lw=2, color=colour[i])
-#     #
-#     #         ax12.hist(trimmed_x1, bins_x1, histtype='step', color=colour[i], label=labels[i])
-#     #         ax12.plot(x_fit, y_fit, lw=2, color=colour[i])
-#     #
-#     #     if not os.path.isdir(folder):
-#     #         os.makedirs(folder)
-#     #
-#     #     figa4.subplots_adjust(hspace=0)
-#     #     plt.figure(dpi=1200)
-#     #     plt.setp([a.get_xticklabels() for a in figa4.axes[:-1]], visible=False)
-#     #     ax10.set_title(r'Fitted $x_1$ Errors')
-#     #     plt.xlabel(r'Fitted $x_1$ Error')
-#     #     plt.ylabel('Frequency')
-#     #     ax10.legend(fontsize = 'x-small')
-#     #     figa4.savefig(folder + 'x1.png')
-#     #     plt.close()
-#     # except RuntimeError:
-#     #     print('An error occured.')
-#     #     plt.close()
-#     #
-#     # return
-#     return
-#
-# def plot_errors_norm_old(scopes, labels, colour, folder):
-#     """
-#     Plots histograms and fitted gaussians of residuals for a set of filters, for each parameter.
-#     """
-#
-#     crange = 0.5
-#     trange = 0.5
-#     x1range = 0.5
-#     # C - set to [-0.2,0.2] with bins of 0.01
-#     try:
-#         figa, (ax1, ax2, ax3) = plt.subplots(3, sharex=True, sharey=True)
-#         for i in range(0, len(scopes)):
-#             abs_c = copy.deepcopy(scopes[i][0])
-#             c_flips = [-x for x in abs_c]
-#             abs_c.extend(c_flips)
-#             trimmed_c = [x for x in abs_c if x >= -crange and x <= crange]
-#             bins_c = np.arange(min(trimmed_c), max(trimmed_c) + 0.01, 0.01)
-#             data = ax1.hist(trimmed_c, bins_c, histtype='step', density=True, color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_c)/2))
-#
-#             # Generate data from bins as a set of points
-#             x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
-#             y = data[0]
-#
-#             popt, pcov = curve_fit(f, x, y)
-#
-#             x_fit = py.linspace(-crange, crange, 200)#(min(abs_c), max(abs_c), 200)
-#             y_fit = f(x_fit, *popt)
-#
-#             ax2.plot(x_fit, y_fit, lw=2, color=colour[i], label=labels[i]+'\n $\mu = %s$'%round(popt[1], 5)+'\n $\sigma = %s$'%round(popt[2], 5))
-#
-#             ax3.hist(trimmed_c, bins_c, histtype='step', density=True, color=colour[i], label=labels[i])
-#             ax3.plot(x_fit, y_fit, lw=2, color=colour[i])
-#
-#         if not os.path.isdir(folder):
-#             os.makedirs(folder)
-#
-#         figa.subplots_adjust(hspace=0)
-#         plt.figure(dpi=1200)
-#         plt.setp([a.get_xticklabels() for a in figa.axes[:-1]], visible=False)
-#         ax3.set_xlabel('c error')
-#         ax2.set_ylabel('PDF')
-#         ax2.set_xlim(-0.2,0.2)
-#         leg = ax2.legend(fontsize='large', loc='center left', bbox_to_anchor=(1, 0.5), ncol=1,
-#                          borderaxespad=0, frameon=False, labelspacing=1)
-#         for line in leg.get_lines():
-#             line.set_linewidth(4.0)
-#         figa.savefig(folder + 'colour_normed.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
-#         plt.close(figa)
-#     except RuntimeError as e:
-#         print(e.message)
-#         plt.close()
-#
-#     # t_0 - set to [-1, 1] with bins of 0.1
-#     try:
-#         figa2, (ax4, ax5, ax6) = plt.subplots(3, sharex=True, sharey=True)
-#
-#         for i in range(0, len(scopes)):
-#             abs_t0 = copy.deepcopy(scopes[i][1])
-#             t0_flips = [-x for x in abs_t0]
-#             abs_t0.extend(t0_flips)
-#             trimmed_t0 = [x for x in abs_t0 if x >= -trange and x <= trange]
-#             bins_t0 = np.arange(min(trimmed_t0), max(trimmed_t0) + 0.02, 0.02)
-#             data = ax4.hist(trimmed_t0, bins_t0, histtype='step', density=True, color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_t0)/2))
-#
-#             # Generate data from bins as a set of points
-#             x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
-#             y = data[0]
-#
-#             popt, pcov = curve_fit(f, x, y)
-#
-#             x_fit = py.linspace(-trange, trange, 200)
-#             y_fit = f(x_fit, *popt)
-#
-#             ax5.plot(x_fit, y_fit, lw=2, color=colour[i],  label=labels[i]+'\n $\mu = %s$'%round(popt[1], 5)+'\n $\sigma = %s$'%round(popt[2], 5))
-#
-#             ax6.hist(trimmed_t0, bins_t0, histtype='step', density=True, color=colour[i], label=labels[i])
-#             ax6.plot(x_fit, y_fit, lw=2, color=colour[i])
-#
-#         if not os.path.isdir(folder):
-#             os.makedirs(folder)
-#
-#         figa2.subplots_adjust(hspace=0)
-#         plt.figure(dpi=1200)
-#         plt.setp([a.get_xticklabels() for a in figa2.axes[:-1]], visible=False)
-#         ax6.set_xlabel(r'$t_0$ error')
-#         ax5.set_ylabel('PDF')
-#         ax5.set_xlim(-0.2,0.2)
-#         leg = ax5.legend(fontsize='large', loc='center left', bbox_to_anchor=(1, 0.5), ncol=1,
-#                          borderaxespad=0, frameon=False, labelspacing=1)
-#         for line in leg.get_lines():
-#             line.set_linewidth(4.0)
-#         figa2.savefig(folder + 't0_normed.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
-#         plt.close(figa2)
-#
-#     except RuntimeError:
-#         print('An error occured.')
-#         plt.close()
-#
-#     # x_1 - set to [-0.5, 0.5] with bins of 0.01 (nbins=100)
-#     try:
-#         figa4, (ax10, ax11, ax12) = plt.subplots(3, sharex=True, sharey=True)
-#
-#         for i in range(0, len(scopes)):
-#             abs_x1 = copy.deepcopy(scopes[i][3])
-#             x1_flips = [-x for x in abs_x1]
-#             abs_x1.extend(x1_flips)
-#             trimmed_x1 = [x for x in abs_x1 if x >= -x1range and x <= x1range]
-#             bins_x1 = np.arange(min(trimmed_x1), max(trimmed_x1) + 0.01, 0.01)
-#             data = ax10.hist(trimmed_x1, bins_x1, histtype='step', density=True, color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_x1)/2))
-#
-#             # Generate data from bins as a set of points
-#             x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
-#             y = data[0]
-#
-#             popt, pcov = curve_fit(f, x, y)
-#
-#             x_fit = py.linspace(-x1range, x1range, 200)
-#             y_fit = f(x_fit, *popt)
-#
-#             ax11.plot(x_fit, y_fit, lw=2, color=colour[i], label=labels[i]+'\n $\mu = %s$'%round(popt[1], 5)+'\n $\sigma = %s$'%round(popt[2], 5))
-#
-#             ax12.hist(trimmed_x1, bins_x1, histtype='step',density=True, color=colour[i], label=labels[i])
-#             ax12.plot(x_fit, y_fit, lw=2, color=colour[i])
-#
-#         if not os.path.isdir(folder):
-#             os.makedirs(folder)
-#
-#         figa4.subplots_adjust(hspace=0)
-#         plt.setp([a.get_xticklabels() for a in figa4.axes[:-1]], visible=False)
-#         ax12.set_xlabel(r'Fitted $x_1$ Error')
-#         ax11.set_ylabel('PDF')
-#         ax11.set_xlim(-0.2,0.2)
-#         leg = ax11.legend(fontsize='large', loc='center left', bbox_to_anchor= (1, 0.5), ncol=1,
-#             borderaxespad=0, frameon=False, labelspacing=1)
-#         for line in leg.get_lines():
-#             line.set_linewidth(4.0)
-#         figa4.savefig(folder + 'x1_normed.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
-#         plt.close(figa4)
-#     except RuntimeError:
-#         print('An error occured.')
-#         plt.close()
-#
-#     return
-
-
-# Work in progress to fix error distributions
 
 def plot_errors_norm(scopes, labels, colour, folder):
     """
@@ -1571,142 +1057,11 @@ def uncertainty_summary(errors, lengths, scopes, colours, folder):
     return
 
 
-def plot_wrap(smg_diffs2, smb_diffs2, kst_diffs2, bothg_diffs2, bothb_diffs2, parent):
-    """
-    Produces a bunch of plots of normed residuals (non-normed currently supressed)
-    """
-    parent = parent + 'stats/errors_removed/residuals_full/'
+parent = '2019-sets/march-1000/lowz_c11/'
 
-
-    # plot_diffs([smg_diffs2],
-    #            ['SM_ws'],
-    #            ['mediumblue'],
-    #            parent + 'SM_ws/')
-    #
-    # plot_diffs([smb_diffs2],
-    #            ['SM_ps'],
-    #            ['lightskyblue'],
-    #            parent + 'SM_ps/')
-    #
-    # plot_diffs([kst_diffs2],
-    #            ['KST'],
-    #            ['g'],
-    #            parent + 'KST/')
-    #
-    # plot_diffs([bothg_diffs2],
-    #            ['Combined_ws'],
-    #            ['crimson'],
-    #            parent + 'Combined_ws/')
-    #
-    # plot_diffs([bothb_diffs2],
-    #            ['Combined_ps'],
-    #            ['coral'],
-    #            parent + 'Combined_ps/')
-    #
-    # plot_diffs([smg_diffs2, smb_diffs2, kst_diffs2, bothg_diffs2, bothb_diffs2],
-    #            ['SM_ws', 'SM_ps', 'KST', 'Combined_ws', 'Combined_ps'],
-    #            ['mediumblue', 'lightskyblue', 'g', 'crimson', 'coral'],
-    #            parent + 'All/')
-
-    plot_diffs_norm([smg_diffs2],
-               ['SM_ws'],
-               ['mediumblue'],
-               parent + 'SM_ws/')
-
-    plot_diffs_norm([smb_diffs2],
-               ['SM_ps'],
-               ['lightskyblue'],
-               parent + 'SM_ps/')
-
-    plot_diffs_norm([kst_diffs2],
-               ['KST'],
-               ['g'],
-               parent + 'KST/')
-
-    plot_diffs_norm([bothg_diffs2],
-               ['Combined_ws'],
-               ['crimson'],
-               parent + 'Combined_ws/')
-
-    plot_diffs_norm([bothb_diffs2],
-                    ['Combined_ps'],
-                    ['coral'],
-                    parent + 'Combined_ps/')
-
-    plot_diffs_norm([smg_diffs2, smb_diffs2, kst_diffs2, bothg_diffs2, bothb_diffs2],
-               ['SM_ws', 'SM_ps', 'KST', 'Combined_ws', 'Combined_ps'],
-               ['mediumblue', 'lightskyblue', 'g', 'crimson', 'coral'],
-               parent + 'All/')
-    return
-
-def plot_wrap_er(smg_diffs2, smb_diffs2, kst_diffs2, bothg_diffs2, bothb_diffs2, parent):
-    """
-    Produces a bunch of plots of normed errors (non-normed currently suppressed)
-    """
-    parent = parent + 'stats/errors_removed/errors_trimmed/'
-
-
-    # plot_errors([smg_diffs2],
-    #            ['SM_ws'],
-    #            ['mediumblue'],
-    #            parent + 'SM_ws/')
-    #
-    # plot_errors([smb_diffs2],
-    #            ['SM_ps'],
-    #            ['lightskyblue'],
-    #            parent + 'SM_ps/')
-    #
-    # plot_errors([bothb_diffs2],
-    #            ['Combined_ps'],
-    #            ['coral'],
-    #            parent + 'Combined_ps/')
-    #
-    # plot_errors([smg_diffs2, smb_diffs2, kst_diffs2, bothg_diffs2, bothb_diffs2],
-    #            ['SM_ws', 'SM_ps', 'KST', 'Combined_ws', 'Combined_ps'],
-    #            ['mediumblue', 'lightskyblue', 'g', 'crimson', 'coral'],
-    #            parent + 'All/')
-    #
-    # plot_errors([kst_diffs2],
-    #             ['KST'],
-    #             ['g'],
-    #             parent + 'KST/')
-    #
-    # plot_errors([bothg_diffs2],
-    #             ['Combined_ws'],
-    #             ['crimson'],
-    #             parent + 'Combined_ws/')
-
-    plot_errors_norm([smg_diffs2],
-               ['SM_ws'],
-               ['mediumblue'],
-               parent + 'SM_ws/')
-
-    plot_errors_norm([smb_diffs2],
-               ['SM_ps'],
-               ['lightskyblue'],
-               parent + 'SM_ps/')
-
-    plot_errors_norm([kst_diffs2],
-                     ['KST'],
-                     ['g'],
-                     parent + 'KST/')
-
-    plot_errors_norm([bothg_diffs2],
-               ['Combined_ws'],
-               ['crimson'],
-               parent + 'Combined_ws/')
-
-    plot_errors_norm([bothb_diffs2],
-                     ['Combined_ps'],
-                     ['coral'],
-                     parent + 'Combined_ps/')
-
-    plot_errors_norm([smg_diffs2, smb_diffs2, kst_diffs2, bothg_diffs2, bothb_diffs2],
-               ['SM_ws', 'SM_ps', 'KST', 'Combined_ws', 'Combined_ps'],
-               ['mediumblue', 'lightskyblue', 'g', 'crimson', 'coral'],
-               parent + 'All/')
-    return
-
+# a = sns.color_palette('colorblind')
+# cols = [a[4], a[3], a[8], a[2], a[9]]
+cols = ['mediumblue', 'lightskyblue', 'g', 'crimson', 'coral']
 
 parent = '2019-sets/march-1000/lowz_g10/'
 
@@ -1719,34 +1074,19 @@ kst_fails, kst_diffs, kst_uncty, uncut_kst  = analyse(parent + 'kst/', 'kst', wi
 bothg_fails, bothg_diffs, bothg_uncty, uncut_bothg = analyse(parent + 'combined_ws/', 'combined_ws', fails=kst_fails, wipe_fails=True)
 bothb_fails, bothb_diffs, bothb_uncty, uncut_bothb = analyse(parent + 'combined_ps/', 'combined_ps', fails=kst_fails, wipe_fails=True)
 
-# plot_wrap(smg_diffs, smb_diffs, kst_diffs, bothg_diffs, bothb_diffs, parent)
-# plt.close('all')
 
 plot_boxplot([smg_diffs, smb_diffs, kst_diffs, bothg_diffs, bothb_diffs],
                ['SM_ws', 'SM_ps', 'KST', 'Combined_ws', 'Combined_ps'],
-               ['mediumblue', 'lightskyblue', 'g', 'crimson', 'coral'],
+               cols,
                parent + 'stats/untrimmed/', mode='residual')
 
 plot_boxplot([smg_uncty, smb_uncty, kst_uncty, bothg_uncty, bothb_uncty],
                ['SM_ws', 'SM_ps', 'KST', 'Combined_ws', 'Combined_ps'],
-               ['mediumblue', 'lightskyblue', 'g', 'crimson', 'coral'],
-               parent + 'stats/untrimmed/', mode='uncertainty')
-
-plot_trimmed([smg_diffs, smb_diffs, kst_diffs, bothg_diffs, bothb_diffs],
-               ['SM_ws', 'SM_ps', 'KST', 'Combined_ws', 'Combined_ps'],
-               ['mediumblue', 'lightskyblue', 'g', 'crimson', 'coral'],
+               cols,
                parent + 'stats/trimmed/', mode='residual')
 
-plot_trimmed([smg_uncty, smb_uncty, kst_uncty, bothg_uncty, bothb_uncty],
-               ['SM_ws', 'SM_ps', 'KST', 'Combined_ws', 'Combined_ps'],
-               ['mediumblue', 'lightskyblue', 'g', 'crimson', 'coral'],
-               parent + 'stats/trimmed/', mode='uncertainty')
-
-# plot_wrap_er(smg_diffs_er, smb_diffs_er, kst_diffs_er, bothg_diffs_er, bothb_diffs_er, parent)
-# plt.close('all')
-
-# uncertainty_summary([smg_uncty, smb_uncty, kst_uncty, bothg_uncty, bothb_uncty],
-#                     [uncut_smg, uncut_smb, uncut_kst, uncut_bothg, uncut_bothb],
-#                     ['SM_ws', 'SM_ps', 'KST', 'Combined_ws', 'Combined_ps'],
-#                     ['mediumblue', 'lightskyblue', 'g', 'crimson', 'coral'],
-#                     parent)
+uncertainty_summary([smg_uncty, smb_uncty, kst_uncty, bothg_uncty, bothb_uncty],
+                    [uncut_smg, uncut_smb, uncut_kst, uncut_bothg, uncut_bothb],
+                    ['SM_ws', 'SM_ps', 'KST', 'Combined_ws', 'Combined_ps'],
+                    cols,
+                    parent)
