@@ -1057,8 +1057,6 @@ def uncertainty_summary(errors, lengths, scopes, colours, folder):
     return
 
 
-parent = '2019-sets/march-1000/lowz_c11/'
-
 # a = sns.color_palette('colorblind')
 # cols = [a[4], a[3], a[8], a[2], a[9]]
 cols = ['mediumblue', 'lightskyblue', 'g', 'crimson', 'coral']
