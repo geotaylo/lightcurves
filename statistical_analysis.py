@@ -1056,6 +1056,7 @@ def uncertainty_summary(errors, lengths, scopes, colours, folder):
             plt.close()
     return
 
+
 # a = sns.color_palette('colorblind')
 # cols = [a[4], a[3], a[8], a[2], a[9]]
 cols = ['mediumblue', 'lightskyblue', 'g', 'crimson', 'coral']
