@@ -1,0 +1,4 @@
+Kepler cadence: 0.25 days. 
+    Number of SN: 1000. 
+    Fitting method: chi-squared initial guess passed to MCMC. 
+    Distribution: ps1_c11.
