@@ -168,15 +168,24 @@ def analyse(folder, set, fails=[], wipe_fails=False):
     if wipe_fails:
         for i in sorted(error_set + fails, reverse=True):
             del sn_num[i - 1]
+
             del diff_c[i - 1]
             del diff_t0[i - 1]
             del diff_x0[i - 1]
             del diff_x1[i - 1]
             del diff_z[i - 1]
+
             del uncert_c[i - 1]
             del uncert_t0[i - 1]
             del uncert_x0[i - 1]
             del uncert_x1[i - 1]
+
+            del fitted_c[i - 1]
+            del fitted_t0[i - 1]
+            del fitted_x0[i - 1]
+            del fitted_x1[i - 1]
+            del fitted_z[i - 1]
+            del fitted_mwebv[i - 1]
 
         # for checking how many SN are removed with further cuts
         uncut_len = len(uncert_c)
@@ -186,15 +195,24 @@ def analyse(folder, set, fails=[], wipe_fails=False):
             if (not -0.3 <= fitted_c[i] <= 0.3) or (not -3.0 <= fitted_x1[i] <= 3.0) or \
                     (uncert_c[i] > 0.3) or (uncert_x1[i] > 3.0) or (uncert_t0[i] > 5):
                 del sn_num[i]
+
                 del diff_c[i]
                 del diff_t0[i]
                 del diff_x0[i]
                 del diff_x1[i]
                 del diff_z[i]
+
                 del uncert_c[i]
                 del uncert_t0[i]
                 del uncert_x0[i]
                 del uncert_x1[i]
+
+                del fitted_c[i]
+                del fitted_t0[i]
+                del fitted_x0[i]
+                del fitted_x1[i]
+                del fitted_z[i]
+                del fitted_mwebv[i]
 
     # Creates residuals table
     t = PrettyTable()
@@ -240,8 +258,10 @@ def analyse(folder, set, fails=[], wipe_fails=False):
 
     diffs = [diff_c, diff_t0, diff_x0, diff_x1, diff_z]
     uncerts = [uncert_c, uncert_t0, uncert_x0, uncert_x1]
+    true = [true_c, true_t0, true_x0, true_x1, true_z, true_mwebv]
+    fitted = [fitted_c, fitted_t0, fitted_x0, fitted_x1, fitted_z, fitted_mwebv]
 
-    return error_set, diffs, uncerts, uncut_len
+    return error_set, diffs, uncerts, uncut_len, true, fitted
 
 
 def f(x, a, b, c):
@@ -284,7 +304,7 @@ def plot_boxplot(scopes, label, colour, folder, mode):
         elif mode == 'uncertainty':
             ax.set_ylabel('Uncertainty in fitted value of c')
         plt.xticks(range(0,index), label)
-        ax.set_xlim(-0.5, index+0.5)
+        ax.set_xlim(-0.5, index - 0.5)
         plt.xticks(rotation=45)
         fig.savefig(folder + mode + '_colour.png', dpi=200, bbox_inches='tight')
         plt.close(fig)
@@ -311,13 +331,13 @@ def plot_boxplot(scopes, label, colour, folder, mode):
                         flierprops=flierprops)
             index += 1
         if mode == 'residual':
-            ax.set_ylabel('Residual (true - fitted value of t0)')
+            ax.set_ylabel('Residual (true - fitted value of $t_0$)')
         elif mode == 'uncertainty':
-            ax.set_ylabel('Uncertainty in fitted value of t0')
+            ax.set_ylabel('Uncertainty in fitted value of $t_0$')
         else:
             raise ValueError
         plt.xticks(range(0,index), label)
-        ax.set_xlim(-0.5, index+0.5)
+        ax.set_xlim(-0.5, index - 0.5)
         plt.xticks(rotation=45)
         fig.savefig(folder + mode + '_t0.png', dpi=200, bbox_inches='tight')
         plt.close(fig)
@@ -344,11 +364,11 @@ def plot_boxplot(scopes, label, colour, folder, mode):
                         flierprops=flierprops)
             index += 1
         if mode == 'residual':
-            ax.set_ylabel('Residual (true - fitted value of x1)')
+            ax.set_ylabel('Residual (true - fitted value of $x_1$)')
         elif mode == 'uncertainty':
-            ax.set_ylabel('Uncertainty in fitted value of x1')
+            ax.set_ylabel('Uncertainty in fitted value of $x_1$')
         plt.xticks(range(0,index), label)
-        ax.set_xlim(-0.5, index+0.5)
+        ax.set_xlim(-0.5, index - 0.5)
         plt.xticks(rotation=45)
         fig.savefig(folder + mode +'_stretch.png', dpi=200, bbox_inches='tight')
         plt.close(fig)
@@ -413,7 +433,6 @@ def plot_trimmed(scopes, label, colour, folder, mode):
                 ax3.hist(trimmed_data, bins, histtype='step', density=True, color=colour[i],
                          label=label[i] + '(%s fits)' % str(len(trimmed_data) / 2))
                 ax3.plot(x_fit, y_fit, lw=1.5, color=colour[i])
-
         if mode == 'residual':
             ax.set_ylabel('Residual (true - fitted value of c)')
             ax3.set_xlabel('Residual (true - fitted value of c)')
@@ -425,15 +444,14 @@ def plot_trimmed(scopes, label, colour, folder, mode):
             for line in leg.get_lines():
                 line.set_linewidth(3.0)
             fig_2.savefig(folder + mode + '_colour_normed.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
+            plt.close(fig_2)
         elif mode == 'uncertainty':
             ax.set_ylabel('Uncertainty in fitted value of c')
-
-        ax.set_xticks(range(0, index), label)
-        ax.set_xlim(-0.5, index + 0.5)
+            plt.close(fig_2)
+        plt.xticks(range(0, index), label, rotation=45)
+        ax.set_xlim(-0.5, index - 0.5)
         fig.savefig(folder + mode + '_colour.png', dpi=200, bbox_inches='tight')
-
         plt.close(fig)
-        plt.close(fig_2)
     except RuntimeError:
         print('An error occured - probably couldn\'t fit a Gaussian.')
         plt.close()
@@ -469,7 +487,7 @@ def plot_trimmed(scopes, label, colour, folder, mode):
 
             if mode == 'residual':
                 # Create Gaussians
-                bins = np.arange(min(trimmed_data), max(trimmed_data) + 0.05, 0.05)
+                bins = np.arange(min(trimmed_data), max(trimmed_data) + 0.02, 0.02)
                 hist_data = ax1.hist(trimmed_data, bins, histtype='step', density=True, color=colour[i],
                                 label=label[i] + '(%s fits)' % str(len(trimmed_data)))
                 # Generate data from bins as a set of points
@@ -491,8 +509,8 @@ def plot_trimmed(scopes, label, colour, folder, mode):
 
 
         if mode == 'residual':
-            ax.set_ylabel('Residual (true - fitted value of t0)')
-            ax3.set_xlabel('Residual (true - fitted value of t0)')
+            ax.set_ylabel('Residual (true - fitted value of $t_0$)')
+            ax3.set_xlabel('Residual (true - fitted value of $t_0$)')
             ax2.set_ylabel('PDF')
             leg = ax2.legend(fontsize='large', loc='center left', bbox_to_anchor=(1, 0.5), ncol=1,
                              borderaxespad=0, frameon=False, labelspacing=1)
@@ -503,14 +521,12 @@ def plot_trimmed(scopes, label, colour, folder, mode):
 
             fig_2.savefig(folder + mode + '_t0_normed.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
         elif mode == 'uncertainty':
-            ax.set_ylabel('Uncertainty in fitted value of t0')
-
-        ax.set_xticks(range(0, index), label)
-        ax.set_xlim(-0.5, index + 0.5)
-        fig.savefig(folder + mode + '_t0.png', dpi=200, bbox_inches='tight')
-
-        plt.close(fig)
+            ax.set_ylabel('Uncertainty in fitted value of $t_0$')
         plt.close(fig_2)
+        plt.xticks(range(0, index), label, rotation=45)
+        ax.set_xlim(-0.5, index - 0.5)
+        fig.savefig(folder + mode + '_t0.png', dpi=200, bbox_inches='tight')
+        plt.close(fig)
     except RuntimeError:
         print('An error occured - probably couldn\'t fit a Gaussian.')
         plt.close()
@@ -567,8 +583,8 @@ def plot_trimmed(scopes, label, colour, folder, mode):
 
 
         if mode == 'residual':
-            ax.set_ylabel('Residual (true - fitted value of x1)')
-            ax3.set_xlabel('Residual (true - fitted value of x1)')
+            ax.set_ylabel('Residual (true - fitted value of $x_1$)')
+            ax3.set_xlabel('Residual (true - fitted value of $x_1$)')
             ax2.set_ylabel('PDF')
             leg = ax2.legend(fontsize='large', loc='center left', bbox_to_anchor=(1, 0.5), ncol=1,
                              borderaxespad=0, frameon=False, labelspacing=1)
@@ -579,366 +595,407 @@ def plot_trimmed(scopes, label, colour, folder, mode):
 
             fig_2.savefig(folder + mode + '_stretch_normed.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
         elif mode == 'uncertainty':
-            ax.set_ylabel('Uncertainty in fitted value of x1')
-
-        ax.set_xticks(range(0, index), label)
-        ax.set_xlim(-0.5, index + 0.5)
-        fig.savefig(folder + mode + '_stretch.png', dpi=200, bbox_inches='tight')
-
-        plt.close(fig)
+            ax.set_ylabel('Uncertainty in fitted value of $x_1$')
         plt.close(fig_2)
+        plt.xticks(range(0, index), label, rotation=45)
+        ax.set_xlim(-0.5, index - 0.5)
+        fig.savefig(folder + mode + '_stretch.png', dpi=200, bbox_inches='tight')
+        plt.close(fig)
     except RuntimeError:
         print('An error occured - probably couldn\'t fit a Gaussian.')
         plt.close()
 
     return
 
+def dist_fig(x, bins, scopes_true, scopes_false, label, colour, folder, param):
+    fig, ax = plt.subplots()
+    true_data = scopes_true[x]
+    ax.hist(true_data, bins=bins, histtype='step', density=False, color='black', label='True distribution',
+            lw=3, linestyle=(6, (5, 1)))
+    for i in range(0, len(scopes_false)):
+        fitted_data = scopes_false[i][x]
+        ax.hist(fitted_data, bins=bins, histtype='step', density=False, color=colour[i], label=label[i], lw=1.5,
+                alpha=0.6)
+    ax.set_ylabel('PDF')
+    ax.set_xlabel('$' + param + '$')
 
+    leg = ax.legend(fontsize='large', loc='center left', bbox_to_anchor=(1, 0.5), ncol=1,
+                    borderaxespad=0, frameon=False, labelspacing=1)
+    for line in leg.get_lines():
+        line.set_linewidth(3.0)
+    fig.savefig(folder + param + '.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
+    plt.close(fig)
 
-def plot_diffs_norm(scopes, labels, colour, folder):
-    """
-    Plots histograms and fitted gaussians of residuals for a set of filters, for each parameter.
-    """
+    return
 
-    crange = 100
-    trange = 100
-    x1range = 100
+def plot_dists(scopes_true, scopes_false, label, colour, folder):
+    """ Plot true vs fitted distribution of parameters """
+
+    folder = folder + 'distributions/'
+    if not os.path.isdir(folder):
+        os.makedirs(folder)
 
     plt.style.use('seaborn-paper')
-    # C - set to [-0.2,0.2] with bins of 0.01
-    try:
-        figa, (ax1, ax2, ax3) = plt.subplots(3, sharex=True, sharey=True)
-        for i in range(0, len(scopes)):
-            abs_c = scopes[i][0]
-            trimmed_c = [x for x in abs_c if x >= -crange and x <= crange]
-            bins_c = np.arange(min(trimmed_c), max(trimmed_c) + 0.01, 0.01)
-            data = ax1.hist(trimmed_c, bins_c, histtype='step', density=True, color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_c)))
 
-            # Generate data from bins as a set of points
-            x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
-            y = data[0]
+    cbins = np.arange(-0.4, 0.4 + 0.02, 0.02)
+    tbins = np.arange(58500, 59000 + 20, 20)
+    x0bins = np.arange(-0.2, 0.2 + 0.02, 0.02)
+    x1bins = np.arange(-4, 4 + 0.2, 0.2)
+    zbins = np.arange(0, 0.15 + 0.01, 0.01)
+    mwbins = np.arange(0, 2 + 0.05, 0.05)
 
-            popt, pcov = curve_fit(f, x, y)
-
-            x_fit = py.linspace(min(trimmed_c), max(trimmed_c), 200)
-            y_fit = f(x_fit, *popt)
-
-            ax2.plot(x_fit, y_fit, lw=2, color=colour[i], label=labels[i]+'\n $\mu = %s$'%round(popt[1], 5)+'\n $\sigma = %s$'%round(abs(popt[2]), 5))
-
-            ax3.hist(trimmed_c, bins_c, histtype='step', density=True, color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_c)/2))
-            ax3.plot(x_fit, y_fit, lw=2, color=colour[i])
-
-        if not os.path.isdir(folder):
-            os.makedirs(folder)
-
-        #figa.subplots_adjust(hspace=0)
-        plt.figure(dpi=1200)
-        #ax2.set_xlim(-1, 1)
-        #plt.setp([a.get_xticklabels() for a in figa.axes[:-1]], visible=False)
-        ax3.set_xlabel('Residual (true - fitted value of c)')
-        ax2.set_ylabel('PDF')
-        leg = ax2.legend(fontsize='large', loc='center left', bbox_to_anchor= (1, 0.5), ncol=1,
-            borderaxespad=0, frameon=False, labelspacing=1)
-        for line in leg.get_lines():
-            line.set_linewidth(3.0)
-        figa.savefig(folder + 'colour_normed.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
-        plt.close(figa)
-    except RuntimeError:
-        print('An error occured - probably couldn\'t fit a Gaussian.')
-        plt.close()
-
-    # t_0 - set to [-0.25,0.25] with bins of 0.0.02
-    try:
-        figa2, (ax4, ax5, ax6) = plt.subplots(3, sharex=True, sharey=True)
-
-        for i in range(0, len(scopes)):
-            abs_t0 = scopes[i][1]
-            trimmed_t0 = [x for x in abs_t0 if x >= -trange and x <= trange]
-            bins_t0 = np.arange(min(trimmed_t0), max(trimmed_t0) + 0.02, 0.02)
-            data = ax4.hist(trimmed_t0, bins_t0, histtype='step', density=True, color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_t0)))
-
-            # Generate data from bins as a set of points
-            x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
-            y = data[0]
-
-            popt, pcov = curve_fit(f, x, y)
-
-            x_fit = py.linspace(-trange, trange, 200)
-            y_fit = f(x_fit, *popt)
-
-            ax5.plot(x_fit, y_fit, lw=2, color=colour[i], label=labels[i]+'\n $\mu = %s$'%round(popt[1], 5)+'\n $\sigma = %s$'%round(abs(popt[2]), 5))
-
-            ax6.hist(trimmed_t0, bins_t0, histtype='step', density=True, color=colour[i], label=labels[i])
-            ax6.plot(x_fit, y_fit, lw=2, color=colour[i])
-
-        if not os.path.isdir(folder):
-            os.makedirs(folder)
-
-        figa2.subplots_adjust(hspace=0)
-        plt.figure(dpi=1200)
-        plt.setp([a.get_xticklabels() for a in figa2.axes[:-1]], visible=False)
-        ax6.set_xlabel(r'Residual (true - fitted value of $t_0$)')
-        ax5.set_ylabel('PDF')
-        ax5.set_xlim(-0.1, 0.1)
-        leg = ax5.legend(fontsize='large', loc='center left', bbox_to_anchor=(1, 0.5), ncol=1,
-                         borderaxespad=0, frameon=False, labelspacing=1)
-        for line in leg.get_lines():
-            line.set_linewidth(4.0)
-        figa2.savefig(folder + 't0_normed.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
-        plt.close(figa2)
-    except RuntimeError:
-        print('An error occured.')
-        plt.close()
-
-    # x_1 - set to [-0.2, 0.2] with bins of 0.01
-    try:
-        figa4, (ax10, ax11, ax12) = plt.subplots(3, sharex=True, sharey=True)
-
-        for i in range(0, len(scopes)):
-            abs_x1 = scopes[i][3]
-            trimmed_x1 = [x for x in abs_x1 if x >= -x1range and x <= x1range]
-            bins_x1 = np.arange(min(trimmed_x1), max(trimmed_x1) + 0.01, 0.01)
-            data = ax10.hist(trimmed_x1, bins_x1, histtype='step', density=True, color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_x1)))
-
-            # Generate data from bins as a set of points
-            x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
-            y = data[0]
-
-            popt, pcov = curve_fit(f, x, y)
-
-            x_fit = py.linspace(-x1range, x1range, 200)
-            y_fit = f(x_fit, *popt)
-
-            ax11.plot(x_fit, y_fit, lw=2, color=colour[i], label=labels[i]+'\n $\mu = %s$'%round(popt[1], 5)+'\n $\sigma = %s$'%round(abs(popt[2]), 5))
-
-            ax12.hist(trimmed_x1, bins_x1, histtype='step', density=True, color=colour[i], label=labels[i])
-            ax12.plot(x_fit, y_fit, lw=2, color=colour[i])
-
-        if not os.path.isdir(folder):
-            os.makedirs(folder)
-
-        figa4.subplots_adjust(hspace=0)
-        plt.figure(dpi=1200)
-        plt.setp([a.get_xticklabels() for a in figa4.axes[:-1]], visible=False)
-        ax12.set_xlabel(r'Residual (true - fitted value of $x_1$)')
-        ax11.set_ylabel('PDF')
-        ax11.set_xlim(-0.1, 0.1)
-        leg = ax11.legend(fontsize='large', loc='center left', bbox_to_anchor=(1, 0.5), ncol=1,
-                         borderaxespad=0, frameon=False, labelspacing=1)
-        for line in leg.get_lines():
-            line.set_linewidth(4.0)
-        figa4.savefig(folder + 'x1_normed.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
-        plt.close(figa4)
-    except RuntimeError:
-        print('An error occured.')
-        plt.close()
+    dist_fig(0, cbins, scopes_true, scopes_false, label, colour, folder, 'c')
+    dist_fig(1, tbins, scopes_true, scopes_false, label, colour, folder, 't_0')
+    dist_fig(2, x0bins, scopes_true, scopes_false, label, colour, folder, 'x_0')
+    dist_fig(3, x1bins, scopes_true, scopes_false, label, colour, folder, 'x_1')
+    dist_fig(4, zbins, scopes_true, scopes_false, label, colour, folder, 'z')
+    dist_fig(5, mwbins, scopes_true, scopes_false, label, colour, folder, 'mwebv')
 
     return
 
-
-def plot_errors_norm(scopes, labels, colour, folder):
-    """
-    Plots histograms and fitted gaussians of residuals for a set of filters, for each parameter.
-    """
-
-    # Parameter ranges and resolutions - only consider errors within range
-    crange = 0.5
-    cres = 0.01
-    trange = 0.5
-    tres= 0.02
-    x1range = 0.5
-    x1res = 0.01
-
-    # quick recode for label formatting
-
-    for g in range(len(labels)):
-        d = labels[g].replace('_', '\_')
-        y = '$\\bf{%s}$'%d
-        labels[g] = y
-
-    # C - set to [0,crange] with bins of cres
-    try:
-        figa, (ax1, ax2, ax3) = plt.subplots(3, sharex=True, sharey=False)
-        # Iterate through telescope sets, plotting the errors.
-        for i in range(0, len(scopes)):
-            abs_c = copy.deepcopy(scopes[i][0])
-            trimmed_c = [x for x in abs_c if x >= 0 and x <= crange]
-
-            # Set bin intervals
-            bins_c = np.arange(0, crange + cres, cres)
-            # Plot error histograms on top plot
-            data = ax1.hist(trimmed_c, bins_c, histtype='stepfilled', density=True, color=colour[i],
-                            label=labels[i]+'(%s fits)'%str(len(trimmed_c)), alpha=0.4)
-
-            # Generate data from bins as a set of points
-            x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
-            y = data[0]
-            # Fit a gaussian, plot on middle plot
-            try:
-                popt, pcov = curve_fit(f, x, y)
-                x_fit = py.linspace(0, crange, 200)
-                y_fit = f(x_fit, *popt)
-            except:
-                popt = [99.999, 99.999, 99.999]
-                x_fit = py.linspace(0, crange, 200)
-                y_fit = [1]*200
-            ax2.plot(x_fit, y_fit, lw=2, color=colour[i], label=labels[i]+'\n %s fits'%str(len(trimmed_c))+'\n $\mu = %s$'%round(popt[1], 5)+'\n $\sigma = %s$'%np.abs(round(popt[2], 5)))
-
-            # Plot data and fit overlaid on bottom plot
-            ax3.hist(trimmed_c, bins_c, histtype='stepfilled', density=True, color=colour[i], label=labels[i], alpha=0.4)
-            ax3.plot(x_fit, y_fit, lw=2, color=colour[i])
-
-        if not os.path.isdir(folder):
-            os.makedirs(folder)
-
-        figa.subplots_adjust(hspace=0)
-        plt.figure(dpi=1200)
-        ax3.set_xlabel('c error')
-        ax2.set_ylabel('PDF')
-        ax2.set_xlim(0, crange)
-        # Adjust tickmarks to prevent overlap and keep consistency
-        ax2.set_ylim(ax1.get_ylim())
-        ax3.set_ylim(ax1.get_ylim())
-        ax2.set_yticks(ax1.get_yticks())
-        ax3.set_yticks(ax1.get_yticks())
-        nbins = len(ax1.get_yticklabels())  # added
-        ax1.yaxis.set_major_locator(MaxNLocator(nbins=nbins, prune=None))  # added
-        ax2.yaxis.set_major_locator(MaxNLocator(nbins=nbins, prune='upper'))  # added
-        ax3.yaxis.set_major_locator(MaxNLocator(nbins=nbins, prune='upper'))  # added
-        #
-        leg = ax2.legend(fontsize='large', loc='center left', bbox_to_anchor=(1, 0.5), ncol=1,
-                         borderaxespad=0, frameon=False, labelspacing=1)
-        for line in leg.get_lines():
-            line.set_linewidth(4.0)
-        figa.savefig(folder + 'colour_normed.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
-        plt.close(figa)
-    except RuntimeError as e:
-        print(e.message)
-        plt.close()
-
-    # # t_0
-    try:
-        figa2, (ax4, ax5, ax6) = plt.subplots(3, sharex=True, sharey=False)
-
-        for i in range(0, len(scopes)):
-            abs_t0 = copy.deepcopy(scopes[i][1])
-            trimmed_t0 = [x for x in abs_t0 if x >= 0 and x <= trange]
-
-            # Set bin intervals
-            bins_t0 = np.arange(0, trange + tres, tres)
-            # Plot error histograms on top plot
-            data = ax4.hist(trimmed_t0, bins_t0, histtype='stepfilled', density=True, color=colour[i],
-                            label=labels[i] + '(%s fits)' % str(len(trimmed_t0)), alpha=0.4)
-
-            # Generate data from bins as a set of points
-            x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
-            y = data[0]
-            # Fit a gaussian, plot on middle plot
-            try:
-                popt, pcov = curve_fit(f, x, y)
-                x_fit = py.linspace(0, trange, 200)
-                y_fit = f(x_fit, *popt)
-            except:
-                popt = [99.999, 99.999, 99.999]
-                x_fit = py.linspace(0, trange, 200)
-                y_fit = [1]*200
-            ax5.plot(x_fit, y_fit, lw=2, color=colour[i], label=labels[i]+'\n %s fits'%str(len(trimmed_c))+'\n $\mu = %s$'%round(popt[1], 5)+'\n $\sigma = %s$'%np.abs(round(popt[2], 5)))
-
-            # Plot data and fit overlaid on bottom plot
-            ax6.hist(trimmed_t0, bins_t0, histtype='stepfilled', density=True, color=colour[i], label=labels[i], alpha=0.4)
-            ax6.plot(x_fit, y_fit, lw=2, color=colour[i])
-
-        if not os.path.isdir(folder):
-            os.makedirs(folder)
-
-        figa2.subplots_adjust(hspace=0)
-        plt.figure(dpi=1200)
-
-        # Adjust tickmarks to prevent overlap and keep consistency
-        ax5.set_ylim(ax4.get_ylim())
-        ax6.set_ylim(ax4.get_ylim())
-        ax5.set_yticks(ax4.get_yticks())
-        ax6.set_yticks(ax4.get_yticks())
-        nbins = len(ax4.get_yticklabels())  # added
-        ax4.yaxis.set_major_locator(MaxNLocator(nbins=nbins, prune=None))  # added
-        ax5.yaxis.set_major_locator(MaxNLocator(nbins=nbins, prune='upper'))  # added
-        ax6.yaxis.set_major_locator(MaxNLocator(nbins=nbins, prune='upper'))  # added
-        #
-        ax6.set_xlabel(r'$t_0$ error')
-        ax5.set_ylabel('PDF')
-        ax5.set_xlim(0,trange)
-        leg = ax5.legend(fontsize='large', loc='center left', bbox_to_anchor=(1, 0.5), ncol=1,
-                         borderaxespad=0, frameon=False, labelspacing=1)
-        for line in leg.get_lines():
-            line.set_linewidth(4.0)
-        figa2.savefig(folder + 't0_normed.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
-        plt.close(figa2)
-
-    except RuntimeError:
-        print('An error occured.')
-        plt.close()
-
-    # # x_1
-    try:
-        figa4, (ax10, ax11, ax12) = plt.subplots(3, sharex=True, sharey=False)
-
-        for i in range(0, len(scopes)):
-            abs_x1 = copy.deepcopy(scopes[i][3])
-            trimmed_x1 = [x for x in abs_x1 if x >= 0 and x <= x1range]
-
-            # Set bin intervals
-            bins_x1 = np.arange(0, x1range + x1res, x1res)
-            # Plot error histograms on top plot
-            data = ax10.hist(trimmed_x1, bins_x1, histtype='stepfilled', density=True, color=colour[i],
-                            label=labels[i] + '(%s fits)' % str(len(trimmed_t0)), alpha=0.4)
-
-            # Generate data from bins as a set of points
-            x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
-            y = data[0]
-            # Fit a gaussian, plot on middle plot
-            try:
-                popt, pcov = curve_fit(f, x, y)
-                x_fit = py.linspace(0, x1range, 200)
-                y_fit = f(x_fit, *popt)
-            except:
-                popt = [99.999, 99.999, 99.999]
-                x_fit = py.linspace(0, x1range, 200)
-                y_fit = [1] * 200
-            ax11.plot(x_fit, y_fit, lw=2, color=colour[i],
-                     label=labels[i]+'\n %s fits'%str(len(trimmed_c)) + '\n $\mu = %s$' % round(popt[1], 5) + '\n $\sigma = %s$' % np.abs(round(popt[2], 5)))
-
-            # Plot data and fit overlaid on bottom plot
-            ax12.hist(trimmed_x1, bins_x1, histtype='stepfilled', density=True, color=colour[i], label=labels[i],
-                     alpha=0.4)
-            ax12.plot(x_fit, y_fit, lw=2, color=colour[i])
-        if not os.path.isdir(folder):
-            os.makedirs(folder)
-
-        figa4.subplots_adjust(hspace=0)
-        # Adjust tickmarks to prevent overlap and keep consistency
-        ax11.set_ylim(ax10.get_ylim())
-        ax12.set_ylim(ax10.get_ylim())
-        ax11.set_yticks(ax10.get_yticks())
-        ax12.set_yticks(ax10.get_yticks())
-        nbins = len(ax10.get_yticklabels())  # added
-        ax10.yaxis.set_major_locator(MaxNLocator(nbins=nbins, prune=None))  # added
-        ax11.yaxis.set_major_locator(MaxNLocator(nbins=nbins, prune='upper'))  # added
-        ax12.yaxis.set_major_locator(MaxNLocator(nbins=nbins, prune='upper'))  # added
-        #
-        ax12.set_xlabel(r'Fitted $x_1$ Error')
-        ax11.set_ylabel('PDF')
-        ax11.set_xlim(0,x1range)
-        leg = ax11.legend(fontsize='large', loc='center left', bbox_to_anchor= (1, 0.5), ncol=1,
-            borderaxespad=0, frameon=False, labelspacing=1)
-        for line in leg.get_lines():
-            line.set_linewidth(4.0)
-        figa4.savefig(folder + 'x1_normed.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
-        plt.close(figa4)
-    except RuntimeError:
-        print('An error occured.')
-        plt.close()
-
-    return
+# def plot_diffs_norm(scopes, labels, colour, folder):
+#     """
+#     Plots histograms and fitted gaussians of residuals for a set of filters, for each parameter.
+#     """
+#
+#     crange = 100
+#     trange = 100
+#     x1range = 100
+#
+#     plt.style.use('seaborn-paper')
+#     # C - set to [-0.2,0.2] with bins of 0.01
+#     try:
+#         figa, (ax1, ax2, ax3) = plt.subplots(3, sharex=True, sharey=True)
+#         for i in range(0, len(scopes)):
+#             abs_c = scopes[i][0]
+#             trimmed_c = [x for x in abs_c if x >= -crange and x <= crange]
+#             bins_c = np.arange(min(trimmed_c), max(trimmed_c) + 0.01, 0.01)
+#             data = ax1.hist(trimmed_c, bins_c, histtype='step', density=True, color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_c)))
+#
+#             # Generate data from bins as a set of points
+#             x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
+#             y = data[0]
+#
+#             popt, pcov = curve_fit(f, x, y)
+#
+#             x_fit = py.linspace(min(trimmed_c), max(trimmed_c), 200)
+#             y_fit = f(x_fit, *popt)
+#
+#             ax2.plot(x_fit, y_fit, lw=2, color=colour[i], label=labels[i]+'\n $\mu = %s$'%round(popt[1], 5)+'\n $\sigma = %s$'%round(abs(popt[2]), 5))
+#
+#             ax3.hist(trimmed_c, bins_c, histtype='step', density=True, color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_c)/2))
+#             ax3.plot(x_fit, y_fit, lw=2, color=colour[i])
+#
+#         if not os.path.isdir(folder):
+#             os.makedirs(folder)
+#
+#         #figa.subplots_adjust(hspace=0)
+#         plt.figure(dpi=1200)
+#         #ax2.set_xlim(-1, 1)
+#         #plt.setp([a.get_xticklabels() for a in figa.axes[:-1]], visible=False)
+#         ax3.set_xlabel('Residual (true - fitted value of c)')
+#         ax2.set_ylabel('PDF')
+#         leg = ax2.legend(fontsize='large', loc='center left', bbox_to_anchor= (1, 0.5), ncol=1,
+#             borderaxespad=0, frameon=False, labelspacing=1)
+#         for line in leg.get_lines():
+#             line.set_linewidth(3.0)
+#         figa.savefig(folder + 'colour_normed.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
+#         plt.close(figa)
+#     except RuntimeError:
+#         print('An error occured - probably couldn\'t fit a Gaussian.')
+#         plt.close()
+#
+#     # t_0 - set to [-0.25,0.25] with bins of 0.0.02
+#     try:
+#         figa2, (ax4, ax5, ax6) = plt.subplots(3, sharex=True, sharey=True)
+#
+#         for i in range(0, len(scopes)):
+#             abs_t0 = scopes[i][1]
+#             trimmed_t0 = [x for x in abs_t0 if x >= -trange and x <= trange]
+#             bins_t0 = np.arange(min(trimmed_t0), max(trimmed_t0) + 0.02, 0.02)
+#             data = ax4.hist(trimmed_t0, bins_t0, histtype='step', density=True, color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_t0)))
+#
+#             # Generate data from bins as a set of points
+#             x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
+#             y = data[0]
+#
+#             popt, pcov = curve_fit(f, x, y)
+#
+#             x_fit = py.linspace(-trange, trange, 200)
+#             y_fit = f(x_fit, *popt)
+#
+#             ax5.plot(x_fit, y_fit, lw=2, color=colour[i], label=labels[i]+'\n $\mu = %s$'%round(popt[1], 5)+'\n $\sigma = %s$'%round(abs(popt[2]), 5))
+#
+#             ax6.hist(trimmed_t0, bins_t0, histtype='step', density=True, color=colour[i], label=labels[i])
+#             ax6.plot(x_fit, y_fit, lw=2, color=colour[i])
+#
+#         if not os.path.isdir(folder):
+#             os.makedirs(folder)
+#
+#         figa2.subplots_adjust(hspace=0)
+#         plt.figure(dpi=1200)
+#         plt.setp([a.get_xticklabels() for a in figa2.axes[:-1]], visible=False)
+#         ax6.set_xlabel(r'Residual (true - fitted value of $t_0$)')
+#         ax5.set_ylabel('PDF')
+#         ax5.set_xlim(-0.1, 0.1)
+#         leg = ax5.legend(fontsize='large', loc='center left', bbox_to_anchor=(1, 0.5), ncol=1,
+#                          borderaxespad=0, frameon=False, labelspacing=1)
+#         for line in leg.get_lines():
+#             line.set_linewidth(4.0)
+#         figa2.savefig(folder + 't0_normed.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
+#         plt.close(figa2)
+#     except RuntimeError:
+#         print('An error occured.')
+#         plt.close()
+#
+#     # x_1 - set to [-0.2, 0.2] with bins of 0.01
+#     try:
+#         figa4, (ax10, ax11, ax12) = plt.subplots(3, sharex=True, sharey=True)
+#
+#         for i in range(0, len(scopes)):
+#             abs_x1 = scopes[i][3]
+#             trimmed_x1 = [x for x in abs_x1 if x >= -x1range and x <= x1range]
+#             bins_x1 = np.arange(min(trimmed_x1), max(trimmed_x1) + 0.01, 0.01)
+#             data = ax10.hist(trimmed_x1, bins_x1, histtype='step', density=True, color=colour[i], label=labels[i]+'(%s fits)'%str(len(trimmed_x1)))
+#
+#             # Generate data from bins as a set of points
+#             x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
+#             y = data[0]
+#
+#             popt, pcov = curve_fit(f, x, y)
+#
+#             x_fit = py.linspace(-x1range, x1range, 200)
+#             y_fit = f(x_fit, *popt)
+#
+#             ax11.plot(x_fit, y_fit, lw=2, color=colour[i], label=labels[i]+'\n $\mu = %s$'%round(popt[1], 5)+'\n $\sigma = %s$'%round(abs(popt[2]), 5))
+#
+#             ax12.hist(trimmed_x1, bins_x1, histtype='step', density=True, color=colour[i], label=labels[i])
+#             ax12.plot(x_fit, y_fit, lw=2, color=colour[i])
+#
+#         if not os.path.isdir(folder):
+#             os.makedirs(folder)
+#
+#         figa4.subplots_adjust(hspace=0)
+#         plt.figure(dpi=1200)
+#         plt.setp([a.get_xticklabels() for a in figa4.axes[:-1]], visible=False)
+#         ax12.set_xlabel(r'Residual (true - fitted value of $x_1$)')
+#         ax11.set_ylabel('PDF')
+#         ax11.set_xlim(-0.1, 0.1)
+#         leg = ax11.legend(fontsize='large', loc='center left', bbox_to_anchor=(1, 0.5), ncol=1,
+#                          borderaxespad=0, frameon=False, labelspacing=1)
+#         for line in leg.get_lines():
+#             line.set_linewidth(4.0)
+#         figa4.savefig(folder + 'x1_normed.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
+#         plt.close(figa4)
+#     except RuntimeError:
+#         print('An error occured.')
+#         plt.close()
+#
+#     return
+#
+# def plot_errors_norm(scopes, labels, colour, folder):
+#     """
+#     Plots histograms and fitted gaussians of residuals for a set of filters, for each parameter.
+#     """
+#
+#     # Parameter ranges and resolutions - only consider errors within range
+#     crange = 0.5
+#     cres = 0.01
+#     trange = 0.5
+#     tres= 0.02
+#     x1range = 0.5
+#     x1res = 0.01
+#
+#     # quick recode for label formatting
+#
+#     for g in range(len(labels)):
+#         d = labels[g].replace('_', '\_')
+#         y = '$\\bf{%s}$'%d
+#         labels[g] = y
+#
+#     # C - set to [0,crange] with bins of cres
+#     try:
+#         figa, (ax1, ax2, ax3) = plt.subplots(3, sharex=True, sharey=False)
+#         # Iterate through telescope sets, plotting the errors.
+#         for i in range(0, len(scopes)):
+#             abs_c = copy.deepcopy(scopes[i][0])
+#             trimmed_c = [x for x in abs_c if x >= 0 and x <= crange]
+#
+#             # Set bin intervals
+#             bins_c = np.arange(0, crange + cres, cres)
+#             # Plot error histograms on top plot
+#             data = ax1.hist(trimmed_c, bins_c, histtype='stepfilled', density=True, color=colour[i],
+#                             label=labels[i]+'(%s fits)'%str(len(trimmed_c)), alpha=0.4)
+#
+#             # Generate data from bins as a set of points
+#             x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
+#             y = data[0]
+#             # Fit a gaussian, plot on middle plot
+#             try:
+#                 popt, pcov = curve_fit(f, x, y)
+#                 x_fit = py.linspace(0, crange, 200)
+#                 y_fit = f(x_fit, *popt)
+#             except:
+#                 popt = [99.999, 99.999, 99.999]
+#                 x_fit = py.linspace(0, crange, 200)
+#                 y_fit = [1]*200
+#             ax2.plot(x_fit, y_fit, lw=2, color=colour[i], label=labels[i]+'\n %s fits'%str(len(trimmed_c))+'\n $\mu = %s$'%round(popt[1], 5)+'\n $\sigma = %s$'%np.abs(round(popt[2], 5)))
+#
+#             # Plot data and fit overlaid on bottom plot
+#             ax3.hist(trimmed_c, bins_c, histtype='stepfilled', density=True, color=colour[i], label=labels[i], alpha=0.4)
+#             ax3.plot(x_fit, y_fit, lw=2, color=colour[i])
+#
+#         if not os.path.isdir(folder):
+#             os.makedirs(folder)
+#
+#         figa.subplots_adjust(hspace=0)
+#         plt.figure(dpi=1200)
+#         ax3.set_xlabel('c error')
+#         ax2.set_ylabel('PDF')
+#         ax2.set_xlim(0, crange)
+#         # Adjust tickmarks to prevent overlap and keep consistency
+#         ax2.set_ylim(ax1.get_ylim())
+#         ax3.set_ylim(ax1.get_ylim())
+#         ax2.set_yticks(ax1.get_yticks())
+#         ax3.set_yticks(ax1.get_yticks())
+#         nbins = len(ax1.get_yticklabels())  # added
+#         ax1.yaxis.set_major_locator(MaxNLocator(nbins=nbins, prune=None))  # added
+#         ax2.yaxis.set_major_locator(MaxNLocator(nbins=nbins, prune='upper'))  # added
+#         ax3.yaxis.set_major_locator(MaxNLocator(nbins=nbins, prune='upper'))  # added
+#         #
+#         leg = ax2.legend(fontsize='large', loc='center left', bbox_to_anchor=(1, 0.5), ncol=1,
+#                          borderaxespad=0, frameon=False, labelspacing=1)
+#         for line in leg.get_lines():
+#             line.set_linewidth(4.0)
+#         figa.savefig(folder + 'colour_normed.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
+#         plt.close(figa)
+#     except RuntimeError as e:
+#         print(e.message)
+#         plt.close()
+#
+#     # # t_0
+#     try:
+#         figa2, (ax4, ax5, ax6) = plt.subplots(3, sharex=True, sharey=False)
+#
+#         for i in range(0, len(scopes)):
+#             abs_t0 = copy.deepcopy(scopes[i][1])
+#             trimmed_t0 = [x for x in abs_t0 if x >= 0 and x <= trange]
+#
+#             # Set bin intervals
+#             bins_t0 = np.arange(0, trange + tres, tres)
+#             # Plot error histograms on top plot
+#             data = ax4.hist(trimmed_t0, bins_t0, histtype='stepfilled', density=True, color=colour[i],
+#                             label=labels[i] + '(%s fits)' % str(len(trimmed_t0)), alpha=0.4)
+#
+#             # Generate data from bins as a set of points
+#             x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
+#             y = data[0]
+#             # Fit a gaussian, plot on middle plot
+#             try:
+#                 popt, pcov = curve_fit(f, x, y)
+#                 x_fit = py.linspace(0, trange, 200)
+#                 y_fit = f(x_fit, *popt)
+#             except:
+#                 popt = [99.999, 99.999, 99.999]
+#                 x_fit = py.linspace(0, trange, 200)
+#                 y_fit = [1]*200
+#             ax5.plot(x_fit, y_fit, lw=2, color=colour[i], label=labels[i]+'\n %s fits'%str(len(trimmed_c))+'\n $\mu = %s$'%round(popt[1], 5)+'\n $\sigma = %s$'%np.abs(round(popt[2], 5)))
+#
+#             # Plot data and fit overlaid on bottom plot
+#             ax6.hist(trimmed_t0, bins_t0, histtype='stepfilled', density=True, color=colour[i], label=labels[i], alpha=0.4)
+#             ax6.plot(x_fit, y_fit, lw=2, color=colour[i])
+#
+#         if not os.path.isdir(folder):
+#             os.makedirs(folder)
+#
+#         figa2.subplots_adjust(hspace=0)
+#         plt.figure(dpi=1200)
+#
+#         # Adjust tickmarks to prevent overlap and keep consistency
+#         ax5.set_ylim(ax4.get_ylim())
+#         ax6.set_ylim(ax4.get_ylim())
+#         ax5.set_yticks(ax4.get_yticks())
+#         ax6.set_yticks(ax4.get_yticks())
+#         nbins = len(ax4.get_yticklabels())  # added
+#         ax4.yaxis.set_major_locator(MaxNLocator(nbins=nbins, prune=None))  # added
+#         ax5.yaxis.set_major_locator(MaxNLocator(nbins=nbins, prune='upper'))  # added
+#         ax6.yaxis.set_major_locator(MaxNLocator(nbins=nbins, prune='upper'))  # added
+#         #
+#         ax6.set_xlabel(r'$t_0$ error')
+#         ax5.set_ylabel('PDF')
+#         ax5.set_xlim(0,trange)
+#         leg = ax5.legend(fontsize='large', loc='center left', bbox_to_anchor=(1, 0.5), ncol=1,
+#                          borderaxespad=0, frameon=False, labelspacing=1)
+#         for line in leg.get_lines():
+#             line.set_linewidth(4.0)
+#         figa2.savefig(folder + 't0_normed.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
+#         plt.close(figa2)
+#
+#     except RuntimeError:
+#         print('An error occured.')
+#         plt.close()
+#
+#     # # x_1
+#     try:
+#         figa4, (ax10, ax11, ax12) = plt.subplots(3, sharex=True, sharey=False)
+#
+#         for i in range(0, len(scopes)):
+#             abs_x1 = copy.deepcopy(scopes[i][3])
+#             trimmed_x1 = [x for x in abs_x1 if x >= 0 and x <= x1range]
+#
+#             # Set bin intervals
+#             bins_x1 = np.arange(0, x1range + x1res, x1res)
+#             # Plot error histograms on top plot
+#             data = ax10.hist(trimmed_x1, bins_x1, histtype='stepfilled', density=True, color=colour[i],
+#                             label=labels[i] + '(%s fits)' % str(len(trimmed_t0)), alpha=0.4)
+#
+#             # Generate data from bins as a set of points
+#             x = [0.5 * (data[1][t] + data[1][t + 1]) for t in xrange(len(data[1]) - 1)]
+#             y = data[0]
+#             # Fit a gaussian, plot on middle plot
+#             try:
+#                 popt, pcov = curve_fit(f, x, y)
+#                 x_fit = py.linspace(0, x1range, 200)
+#                 y_fit = f(x_fit, *popt)
+#             except:
+#                 popt = [99.999, 99.999, 99.999]
+#                 x_fit = py.linspace(0, x1range, 200)
+#                 y_fit = [1] * 200
+#             ax11.plot(x_fit, y_fit, lw=2, color=colour[i],
+#                      label=labels[i]+'\n %s fits'%str(len(trimmed_c)) + '\n $\mu = %s$' % round(popt[1], 5) + '\n $\sigma = %s$' % np.abs(round(popt[2], 5)))
+#
+#             # Plot data and fit overlaid on bottom plot
+#             ax12.hist(trimmed_x1, bins_x1, histtype='stepfilled', density=True, color=colour[i], label=labels[i],
+#                      alpha=0.4)
+#             ax12.plot(x_fit, y_fit, lw=2, color=colour[i])
+#         if not os.path.isdir(folder):
+#             os.makedirs(folder)
+#
+#         figa4.subplots_adjust(hspace=0)
+#         # Adjust tickmarks to prevent overlap and keep consistency
+#         ax11.set_ylim(ax10.get_ylim())
+#         ax12.set_ylim(ax10.get_ylim())
+#         ax11.set_yticks(ax10.get_yticks())
+#         ax12.set_yticks(ax10.get_yticks())
+#         nbins = len(ax10.get_yticklabels())  # added
+#         ax10.yaxis.set_major_locator(MaxNLocator(nbins=nbins, prune=None))  # added
+#         ax11.yaxis.set_major_locator(MaxNLocator(nbins=nbins, prune='upper'))  # added
+#         ax12.yaxis.set_major_locator(MaxNLocator(nbins=nbins, prune='upper'))  # added
+#         #
+#         ax12.set_xlabel(r'Fitted $x_1$ Error')
+#         ax11.set_ylabel('PDF')
+#         ax11.set_xlim(0,x1range)
+#         leg = ax11.legend(fontsize='large', loc='center left', bbox_to_anchor= (1, 0.5), ncol=1,
+#             borderaxespad=0, frameon=False, labelspacing=1)
+#         for line in leg.get_lines():
+#             line.set_linewidth(4.0)
+#         figa4.savefig(folder + 'x1_normed.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
+#         plt.close(figa4)
+#     except RuntimeError:
+#         print('An error occured.')
+#         plt.close()
+#
+#     return
 
 def summary_helper(e):
     """ Returns summry satistics for a list of errors, e """
@@ -1060,31 +1117,83 @@ def uncertainty_summary(errors, lengths, scopes, colours, folder):
 # a = sns.color_palette('colorblind')
 # cols = [a[4], a[3], a[8], a[2], a[9]]
 cols = ['mediumblue', 'lightskyblue', 'g', 'crimson', 'coral']
-
-parent = '2019-sets/march-1000/lowz_g10/'
-
-
-smg_fails, smg_diffs, smg_uncty, uncut_smg = analyse(parent + 'sm_ws/', 'skymapper_ws', wipe_fails=True)
-smb_fails, smb_diffs, smb_uncty, uncut_smb = analyse(parent + 'sm_ps/', 'skymapper_ps', wipe_fails=True)
-
-kst_fails, kst_diffs, kst_uncty, uncut_kst  = analyse(parent + 'kst/', 'kst', wipe_fails=True)
-
-bothg_fails, bothg_diffs, bothg_uncty, uncut_bothg = analyse(parent + 'combined_ws/', 'combined_ws', fails=kst_fails, wipe_fails=True)
-bothb_fails, bothb_diffs, bothb_uncty, uncut_bothb = analyse(parent + 'combined_ps/', 'combined_ps', fails=kst_fails, wipe_fails=True)
+cols2 = ['mediumblue', 'g', 'crimson']
+parent = '2019-sets/march-1000/ps1_c11s/'
+#parent = '2019-sets/april-1000/no-t0-passed/'
 
 
-plot_boxplot([smg_diffs, smb_diffs, kst_diffs, bothg_diffs, bothb_diffs],
-               ['SM_ws', 'SM_ps', 'KST', 'Combined_ws', 'Combined_ps'],
-               cols,
+smg_fails, smg_diffs, smg_uncty, uncut_smg, true_smg, fitted_smg = analyse(parent + 'sm_ws/', 'skymapper_ws', wipe_fails=True)
+# smb_fails, smb_diffs, smb_uncty, uncut_smb, true_smb, fitted_smb= analyse(parent + 'sm_ps/', 'skymapper_ps', wipe_fails=True)
+
+kst_fails, kst_diffs, kst_uncty, uncut_kst, true_kst, fitted_kst  = analyse(parent + 'kst/', 'kst', wipe_fails=True)
+
+bothg_fails, bothg_diffs, bothg_uncty, uncut_bothg, true_bothg, fitted_bothg = analyse(parent + 'combined_ws/', 'combined_ws', fails=kst_fails, wipe_fails=True)
+# bothb_fails, bothb_diffs, bothb_uncty, uncut_bothb, true_bothb, fitted_bothb = analyse(parent + 'combined_ps/', 'combined_ps', fails=kst_fails, wipe_fails=True)
+
+
+
+plot_boxplot([smg_diffs, kst_diffs, bothg_diffs],
+               ['SM_ws', 'KST', 'Combined_ws'],
+               cols2,
                parent + 'stats/untrimmed/', mode='residual')
 
-plot_boxplot([smg_uncty, smb_uncty, kst_uncty, bothg_uncty, bothb_uncty],
-               ['SM_ws', 'SM_ps', 'KST', 'Combined_ws', 'Combined_ps'],
-               cols,
+plot_boxplot([smg_uncty, kst_uncty, bothg_uncty],
+               ['SM_ws', 'KST', 'Combined_ws'],
+               cols2,
+               parent + 'stats/untrimmed/', mode='uncertainty')
+
+plot_trimmed([smg_diffs, kst_diffs, bothg_diffs],
+               ['SM_ws', 'KST', 'Combined_ws'],
+               cols2,
                parent + 'stats/trimmed/', mode='residual')
 
-uncertainty_summary([smg_uncty, smb_uncty, kst_uncty, bothg_uncty, bothb_uncty],
-                    [uncut_smg, uncut_smb, uncut_kst, uncut_bothg, uncut_bothb],
-                    ['SM_ws', 'SM_ps', 'KST', 'Combined_ws', 'Combined_ps'],
-                    cols,
-                    parent)
+plot_trimmed([smg_uncty, kst_uncty, bothg_uncty],
+               ['SM_ws', 'KST', 'Combined_ws'],
+               cols2,
+               parent + 'stats/trimmed/', mode='uncertainty')
+
+plot_dists(true_smg,
+           [fitted_smg, fitted_kst, fitted_bothg],
+           ['SM_ws', 'KST', 'Combined_ws'],
+            cols2,
+            parent + 'stats/')
+
+
+uncertainty_summary([smg_uncty, kst_uncty, bothg_uncty],
+                    [uncut_smg, uncut_kst, uncut_bothg],
+                    ['SM_ws', 'KST', 'Combined_ws'],
+                    cols2,
+                    parent + 'stats/')
+
+# plot_boxplot([smg_diffs, smb_diffs, kst_diffs, bothg_diffs, bothb_diffs],
+#                ['SM_ws', 'SM_ps', 'KST', 'Combined_ws', 'Combined_ps'],
+#                cols,
+#                parent + 'stats/untrimmed/', mode='residual')
+
+# plot_boxplot([smg_uncty, smb_uncty, kst_uncty, bothg_uncty, bothb_uncty],
+#                ['SM_ws', 'SM_ps', 'KST', 'Combined_ws', 'Combined_ps'],
+#                cols,
+#                parent + 'stats/untrimmed/', mode='uncertainty')
+
+# plot_trimmed([smg_diffs, smb_diffs, kst_diffs, bothg_diffs, bothb_diffs],
+#                ['SM_ws', 'SM_ps', 'KST', 'Combined_ws', 'Combined_ps'],
+#                cols,
+#                parent + 'stats/trimmed/', mode='residual')
+#
+# plot_trimmed([smg_uncty, smb_uncty, kst_uncty, bothg_uncty, bothb_uncty],
+#                ['SM_ws', 'SM_ps', 'KST', 'Combined_ws', 'Combined_ps'],
+#                cols,
+#                parent + 'stats/trimmed/', mode='uncertainty')
+
+# plot_dists(true_smg,
+#            [fitted_smg, fitted_smb, fitted_kst, fitted_bothg, fitted_bothb],
+#            ['SM_ws', 'SM_ps', 'KST', 'Combined_ws', 'Combined_ps'],
+#             cols,
+#             parent + 'stats/')
+#
+#
+# uncertainty_summary([smg_uncty, smb_uncty, kst_uncty, bothg_uncty, bothb_uncty],
+#                     [uncut_smg, uncut_smb, uncut_kst, uncut_bothg, uncut_bothb],
+#                     ['SM_ws', 'SM_ps', 'KST', 'Combined_ws', 'Combined_ps'],
+#                     cols,
+#                     parent + 'stats/')
