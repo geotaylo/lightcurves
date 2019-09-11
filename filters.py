@@ -8,6 +8,9 @@ Files must be in wd (or update path as needed)
 
 from astropy.io import ascii
 import matplotlib.pyplot as plt
+import matplotlib
+import numpy as np
+from matplotlib.lines import Line2D
 
 import sncosmo
 
@@ -39,9 +42,9 @@ def register_filters():
     kst_transmission = kst_data['col2']
 
     kstband = sncosmo.Bandpass(kst_wavelength, kst_transmission, 
-                               name='kst')
+                               name='Kepler')
 
-    sncosmo.registry.register(kstband, 'kst', force=True)
+    sncosmo.registry.register(kstband, 'Kepler', force=True)
 
         
     # SKYMAPPER v filter.
@@ -53,9 +56,9 @@ def register_filters():
     smv_transmission = smv_data['col2']
 
     smvband = sncosmo.Bandpass(smv_wavelength, smv_transmission,
-                               name='smv') 
+                               name='SMv')
 
-    sncosmo.registry.register(smvband, 'smv', force=True)
+    sncosmo.registry.register(smvband, 'SMv', force=True)
         
     # SKYMAPPER r filter.
 
@@ -66,9 +69,9 @@ def register_filters():
     smr_transmission = smr_data['col2']
 
     smrband = sncosmo.Bandpass(smr_wavelength, smr_transmission,
-                               name='smr') 
+                               name='SMr')
 
-    sncosmo.registry.register(smrband, 'smr', force=True)    
+    sncosmo.registry.register(smrband, 'SMr', force=True)
     
     # SKYMAPPER g filter.
 
@@ -79,8 +82,8 @@ def register_filters():
     smg_transmission = smg_data['col2']
 
     smgband = sncosmo.Bandpass(smg_wavelength, smg_transmission,
-                               name='smg')
-    sncosmo.registry.register(smgband, 'smg', force=True)
+                               name='SMg')
+    sncosmo.registry.register(smgband, 'SMg', force=True)
         
     # SKYMAPPER i filter.
 
@@ -91,21 +94,48 @@ def register_filters():
     smi_transmission = smi_data['col2']
     
     smiband = sncosmo.Bandpass(smi_wavelength, smi_transmission,
-                               name='smi')
+                               name='SMi')
     
-    sncosmo.registry.register(smiband, 'smi', force=True)
+    sncosmo.registry.register(smiband, 'SMi', force=True)
 
-    plt.plot(kst_wavelength, kst_transmission, label='kst', linewidth=2)
-    plt.plot(smg_wavelength, smg_transmission, label='smg', linewidth=2)
-    plt.plot(smi_wavelength, smi_transmission, label='smi', linewidth=2)
-    plt.plot(smr_wavelength, smr_transmission, label='smr', linewidth=2)
-    plt.xlabel(r'Wavelength ($\AA$)', fontsize='xx-large')
-    plt.ylabel('Transmission', fontsize='xx-large')
-    leg = plt.legend(fontsize='xx-large', loc='center left', bbox_to_anchor=(1, 0.5), ncol=1,
-                     borderaxespad=0, frameon=False, labelspacing=1)
-    for line in leg.get_lines():
-        line.set_linewidth(7.0)
-    plt.savefig('filters.png', dpi=200, bbox_extra_artists=(leg,), bbox_inches='tight')
+    # Plot the filter curves
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+
+    fig_width_pt = 240.0  # Get this from LaTeX using \showthe\columnwidth
+    inches_per_pt = 1.0 / 72.27  # Convert pt to inches
+    golden_mean = (np.sqrt(5) - 1.0) / 2.0  # Aesthetic ratio
+    fig_width = fig_width_pt * inches_per_pt  # width in inches
+    fig_height = fig_width * golden_mean  # height in inches
+    fig_size = [fig_width, fig_height]
+
+
+    fig = plt.figure(figsize=(1.5 * fig_width, 1.5 * fig_height))
+
+    plt.plot(kst_wavelength, kst_transmission, label=r'$Kepler$', linewidth=1)
+    plt.plot(smg_wavelength, smg_transmission, label=r'$SkyMapper_g$', linewidth=1)
+    plt.plot(smi_wavelength, smi_transmission, label=r'$SkyMapper_i$', linewidth=1)
+    plt.plot(smr_wavelength, smr_transmission, label=r'$SkyMapper_r$', linewidth=1)
+
+    plt.xlabel(r'Wavelength $\AA$', fontsize=13)
+    plt.ylabel('Transmission', fontsize=13)
+
+
+    legend_elements = [Line2D([0], [0], marker='o', color='w', label=r'$Kepler$',
+                              markerfacecolor='g', markersize=5),
+                       Line2D([0], [0], marker='o', color='w', label=r'$SkyMapper_g$',
+                              markerfacecolor='b', markersize=5),
+                       Line2D([0], [0], marker='o', color='w', label=r'$SkyMapper_r$',
+                              markerfacecolor='y', markersize=5),
+                       Line2D([0], [0], marker='o', color='w', label=r'$SkyMapper_i$',
+                              markerfacecolor='m', markersize=5)
+                       ]
+
+    plt.legend(handles=legend_elements, loc='upper right', ncol=1, fancybox=True, framealpha=0.5)
+
+    plt.savefig('filters.pdf', dpi=200, format='pdf', bbox_inches='tight')
+
     return
 
-register_filters()
+if __name__ == "__main__":
+    register_filters()

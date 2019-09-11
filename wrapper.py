@@ -15,15 +15,15 @@ import filters
 filters.register_filters()
 
 # Number of SN to simulate (if using sncosmo distribution, use 0).
-nSNe = 1000
+nSNe = 1
 
 # Kepler campaign (if using SNCosmo dist.)
 campaign = 0
 
 # Path to store info about whole observing set, used by each run.
 # ENSURE / is at end of path!
-#parent_folder = '2019-sets/c11_test/'
-parent_folder = '2019-sets/march-1000/lowz_g10/'
+parent_folder = 'colour_test/'
+#parent_folder = '2019-sets/march-1000/lowz_g10/'
 
 # Paths to store individual runs
 # ENSURE / is at end of path!
@@ -90,7 +90,7 @@ run.write_params(parent_folder, nSNe)
 #                    parent_folder+child_folder_3+'observed_lc_5.txt',
 #                  ])
 
-
+#
 # Fit SALT2 models to list of observed light curves.
 print'attempting well-sampled SM fits:'
 run.fit_snlc(run1, parent_folder, child_folder=child_folder_1)

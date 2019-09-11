@@ -41,6 +41,7 @@ from astropy.cosmology import FlatLambdaCDM
 from astropy.table import Table, vstack
 from scipy.stats import exponweib
 from matplotlib import cm
+import matplotlib.colors as pltcolors
 from matplotlib.backends.backend_pdf import PdfPages
 from sncosmo.utils import format_value
 
@@ -63,7 +64,8 @@ v_obs = 0
 
 # Skymapper min and max observable redshift, representing redshift bounds for simulations.
 zmin = 0.001
-zmax = 0.15
+zmax = 0.03
+#zmax = 0.15
 
 # Parameter distribution to use for c and x1 (from Scolnic and Kessler 2016, Table 1)
 # NOTE: options are 'lowz_g10', 'lowz_c11', 'ps1_g10', 'ps1_c11' (reflecting sample and intrinsic scatter model)
@@ -75,7 +77,8 @@ lcdist = 'lowz_c11'
 # SFD map is Shlegel et al with correction prescribed in Schlafly and Finkbeiner 2011.
 #dustmap = sfdmap.SFDMap("/Users/macloan4/GTaylor/lightcurves/sfddata-master")#macloan4
 #dustmap = sfdmap.SFDMap("/home/georgie/sfddata-master")#thinkpad
-dustmap = sfdmap.SFDMap("/home/gtaylor/sfddata-master")#motley
+#dustmap = sfdmap.SFDMap("/home/gtaylor/sfddata-master")#motley
+dustmap = sfdmap.SFDMap("/Users/gtaylor/Programs/sfddata-master")#anu_mac
 
 
 # ---------------- You can change the below parameters if you must, but it'll probably break something -----------------
@@ -763,11 +766,11 @@ def simulate_lc(parent_folder, child_folder='TestFiles/', scope='sm', sm_cad='we
     # Setting bandpasses
     if scope == 'sm':
         if v_obs > 0:
-            bands = ['smg', 'smr', 'smi', 'smv']
+            bands = ['SMg', 'SMr', 'SMi', 'SMv']
         else:
-            bands = ['smg', 'smr', 'smi']
+            bands = ['SMg', 'SMr', 'SMi']
     elif scope == 'kst':
-        bands = ['kst']
+        bands = ['kepler']
     else:
         print 'Hey, that\'s not a real telescope!  Please enter ' \
               'scope = \'sm\' for SkyMapper, or \'kst\' for Kepler. '
@@ -860,7 +863,7 @@ def simulate_lc(parent_folder, child_folder='TestFiles/', scope='sm', sm_cad='we
 
         else:
             o_t.extend(time_k[t])
-            k_hold = n_obs_k[t] * ['kst']
+            k_hold = n_obs_k[t] * ['kepler']
             observing_bands.extend(k_hold)
             n_points = n_obs_k[t]
 
@@ -1111,7 +1114,7 @@ def fit_util_lc(data, index, folder, coords_in, z, t0_in, sndict):
                                             ['t0', 'x0', 'x1', 'c'],
                                             minsnr=3.0,
                                             priors={'x1': one_skew_prob_x1, 'c': one_skew_prob_c},
-                                            nwalkers=10, nburn=200, nsamples=1000,
+                                            nwalkers=20, nburn=400, nsamples=2000,
                                             guess_t0=False,
                                             guess_amplitude=False,
                                             )
@@ -1137,7 +1140,7 @@ def fit_util_lc(data, index, folder, coords_in, z, t0_in, sndict):
                                             minsnr=3.0,
                                             guess_t0=False,
                                             guess_amplitude=False,
-                                            nwalkers=10, nburn=200, nsamples=1000,
+                                            nwalkers=20, nburn=400, nsamples=2000,
                                             priors={'x1': one_skew_prob_x1, 'c': one_skew_prob_c}
                                             )
 
@@ -1156,10 +1159,6 @@ def fit_util_lc(data, index, folder, coords_in, z, t0_in, sndict):
     # Use PdfPages if saving as a pdf (ensure to change plotname)
     #pp = PdfPages(plotname)
 
-    # fig = sncosmo.plot_lc(data, format='png')
-    #
-    # plt.savefig(plotname + '_data.png')
-    # plt.close(fig)
     #
     # fig = sncosmo.plot_lc(data, model=fitted_model_1,
     #                       errors=result_1.errors, format='png',
@@ -1171,7 +1170,7 @@ def fit_util_lc(data, index, folder, coords_in, z, t0_in, sndict):
     #truemodel handling (test)
     truemodel.update(sndict)
 
-    cols = cm.get_cmap('hsv')
+    cols = cm.get_cmap('PuBuGn')
 
     figtext=[]
     lines = []
@@ -1193,10 +1192,18 @@ def fit_util_lc(data, index, folder, coords_in, z, t0_in, sndict):
     plt.style.use('seaborn-paper')
     fig = sncosmo.plot_lc(data, model=(fitted_model, truemodel), errors=result.errors,
                           model_label=("fitted", "true"), figtext = figtext,
-                          format='png', cmap=cols, pulls=False, tighten_ylim=True
+                          format='eps',
+                          cmap=cols,
+                          pulls=False, tighten_ylim=True,
                           )
 
-    plt.savefig(plotname + '.png')
+    plt.savefig(plotname + '.eps', dpi=200, format='eps')
+    plt.close(fig)
+
+    fig = sncosmo.plot_lc(data, figtext = figtext,
+                          format='png', cmap=cols, pulls=False, tighten_ylim=True
+                          )
+    plt.savefig(plotname + '_data.eps', dpi=200, format='eps')
     plt.close(fig)
 
 
